@@ -5,6 +5,7 @@ export { layerFeedState } from '../data/feedState.js';
 import { GUIDANCE_STATUSES } from '../loadingFeedback.js';
 import { keySetupRequirement } from '../keySetupCore.mjs';
 import { createWeatherPanel } from './weatherPanel.js';
+import { EFF_ATLAS_TECHNOLOGIES } from '../data/effAtlas.js';
 const FEED_STATE_LABELS = Object.freeze({
   nominal: 'ON',
   loading: 'LOADING',
@@ -45,6 +46,10 @@ const PANEL_GROUPS = [
     ],
   },
   {
+    label: 'EFF Atlas',
+    ids: EFF_ATLAS_TECHNOLOGIES.map(({ id }) => id),
+  },
+  {
     label: 'Events',
     ids: ['rocket-launches', 'earthquakes', 'local-firms', 'fire-perimeters'],
   },
@@ -76,6 +81,9 @@ const PANEL_LABELS = {
   'alpr-cameras': 'Mapped ALPR Cameras',
   'local-datacenters': 'Data Centers',
   'local-firms': 'Active Fires',
+  ...Object.fromEntries(
+    EFF_ATLAS_TECHNOLOGIES.map(({ id, label }) => [id, label]),
+  ),
 };
 
 function panelLabel(layer) {

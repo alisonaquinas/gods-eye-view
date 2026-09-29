@@ -1,5 +1,10 @@
 # Changelog
 
+- Added twelve independent EFF Atlas of Surveillance technology layers with
+  city-scale loading, source evidence links, shareable layer state, and clear
+  labeling of approximate jurisdiction points. The bounded server proxy reads
+  EFF's public map feature service with caching and source attribution.
+
 - Public Overpass instances are no longer used by default. Street Traffic
   roads come from TomTom flow tiles, OpenFreeMap vector tiles, or both, chosen
   on the layer row (TomTom / OSM / Hybrid) or with `?trafficRoads=`. With a

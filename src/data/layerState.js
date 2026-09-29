@@ -582,6 +582,15 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
   }),
   Object.freeze({ id: 'directions', token: 'n', disposition: 'enabled-only' }),
   Object.freeze({ id: 'earthquakes', token: 'e', disposition: 'enabled-only' }),
+  ...Object.keys(LAYER_STATE_TOKEN_RESERVATIONS)
+    .filter((id) => id.startsWith('eff-'))
+    .map((id) =>
+      Object.freeze({
+        id,
+        token: LAYER_STATE_TOKEN_RESERVATIONS[id],
+        disposition: 'enabled-only',
+      }),
+    ),
   Object.freeze({
     id: 'fire-perimeters',
     token: '2',

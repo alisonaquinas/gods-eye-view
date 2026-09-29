@@ -4,6 +4,7 @@ import { createCyclonesLayer } from '../layers/cyclones/index.js';
 import { createWindLayer } from '../layers/wind/index.js';
 import { createLayerCatalog } from './catalog.js';
 import { LAYER_STATE_REGISTRY } from '../data/layerState.js';
+import { EFF_ATLAS_TECHNOLOGIES } from '../data/effAtlas.js';
 import { createMilitaryRegistry } from '../layers/aircraft/classification.js';
 import { createApplicationFlights } from './layers/flights.js';
 import { createApplicationMilitary } from './layers/militaryFlights.js';
@@ -19,6 +20,7 @@ import { createApplicationInstallations } from './layers/militaryInstallations.j
 import { createApplicationSatellites } from './layers/satellites.js';
 import { createApplicationLaunches } from './layers/rocketLaunches.js';
 import { createApplicationAlpr } from './layers/alprCameras.js';
+import { createApplicationEffAtlasLayers } from './layers/effAtlas.js';
 import { createApplicationLocalAdsb } from './layers/localAdsb.js';
 import { createApplicationAwareness } from './layers/militaryAwareness.js';
 import { createApplicationFirms } from './layers/firms.js';
@@ -55,6 +57,7 @@ const SOURCE_METHODS = Object.freeze({
   earthquakes: ['getSnapshot'],
   'fire-perimeters': ['getSnapshot'],
   cables: ['fetch'],
+  'eff-atlas': ['getRecords'],
 });
 
 /**
@@ -148,6 +151,10 @@ export function createApplicationCatalog({
           source: sources['fire-perimeters'],
         }),
         createApplicationAlpr({ surface, source: sources.alpr }),
+        ...createApplicationEffAtlasLayers({
+          categories: EFF_ATLAS_TECHNOLOGIES,
+          source: sources['eff-atlas'],
+        }),
         satellites,
         createApplicationLaunches({ source: sources.launches, satellites }),
         createApplicationTraffic({ source: sources.traffic, surface }),

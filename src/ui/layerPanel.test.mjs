@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
+import { EFF_ATLAS_TECHNOLOGIES } from '../data/effAtlas.js';
 
 test('panel presentation places Transit between Street Traffic and Bike Share in Movement', () => {
   const source = readFileSync(
@@ -13,7 +14,9 @@ test('panel presentation places Transit between Street Traffic and Bike Share in
     source.indexOf('const PANEL_POSITIONS ='),
   );
   const order = JSON.parse(
-    runInNewContext(`${declarations}\nJSON.stringify(PANEL_ORDER)`),
+    runInNewContext(`${declarations}\nJSON.stringify(PANEL_ORDER)`, {
+      EFF_ATLAS_TECHNOLOGIES,
+    }),
   );
   assert.deepEqual(
     order.filter(({ label }) => label === 'Movement').map(({ id }) => id),

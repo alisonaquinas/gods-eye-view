@@ -307,7 +307,9 @@ Nineteen layers and map sources. **Seventeen have a keyless path.** Some offer a
 
 **Weather, keyless.** **Wind** animates 10 m forecast flow from NOAA GFS or ECMWF IFS, with an optional color field and a reading at map center. **Rain radar**, **Satellite clouds** and **Lightning density** are observations on one history timeline in the **WEATHER** panel (step back, **Play**, **Latest**); **Cyclone advisories** draw NHC and CPHC positions, forecast tracks and cones. On Google 3D Tiles the observed layers float above the city as translucent shells, sharpened around your view.
 
-In the app, **Data Layers** groups them as Movement, Cameras, Infrastructure, Events, Weather and Utilities.
+**EFF Atlas of Surveillance, keyless.** Twelve separate technology toggles show documented programs from EFF's public map, including ALPR, body cameras, drones, face recognition and real-time crime centers. Zoom to a city-sized area to load records. Markers are approximate jurisdiction points, not device locations or live observations; open a selected record's evidence link for context. The Atlas is incomplete by design. See [source and attribution details](DATA_SOURCES.md).
+
+In the app, **Data Layers** groups them as Movement, Cameras, EFF Atlas, Infrastructure, Events, Weather and Utilities.
 
 **The basemap ladder — what each tier buys you:**
 

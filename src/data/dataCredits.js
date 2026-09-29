@@ -144,6 +144,12 @@ export const DATA_CREDITS = [
     html: 'Earthquakes: Data courtesy of the U.S. Geological Survey',
   },
   {
+    key: 'eff-atlas',
+    html:
+      'Documented surveillance programs: <a href="https://www.atlasofsurveillance.org/atlas" target="_blank" rel="noopener">EFF Atlas of Surveillance</a> ' +
+      '(CC BY; map points approximate, not device locations)',
+  },
+  {
     key: 'nasa-gibs',
     html:
       'Recent imagery: We acknowledge the use of imagery provided by services from ' +
