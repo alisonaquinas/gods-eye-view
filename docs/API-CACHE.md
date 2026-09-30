@@ -57,6 +57,9 @@ explicitly enabled for Places and Overpass.
 EFF Atlas requests use the `services8.arcgis.com` host policy. Its bounded
 one-hour in-process cache and stale fallback remain in place; Redis also
 shares successful upstream responses across server instances and restarts.
+The proxy requests ArcGIS's `cacheHint=true` mode, which lets the public
+service mark these anonymous query responses cacheable. Responses marked
+private or no-store still retain the shared cache's normal protections.
 For example, include `"services8.arcgis.com":{"ttlMs":3600000}` in
 `GEV_API_CACHE_HOSTS` to retain upstream responses for one hour.
 

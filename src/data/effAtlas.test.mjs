@@ -97,6 +97,7 @@ test('EFF Atlas proxy enforces bounds, fixes the technology filter, and caches n
         "Technology='Automated License Plate Readers' OR Technology='Automated LIcense Plate Readers'",
       );
       assert.equal(upstream.searchParams.get('resultRecordCount'), '1000');
+      assert.equal(upstream.searchParams.get('cacheHint'), 'true');
       return new Response(
         JSON.stringify({
           features: [

@@ -69,6 +69,8 @@ function upstreamUrl({ category, west, south, east, north }) {
     outSR: '4326',
     orderByFields: 'ObjectId ASC',
     resultRecordCount: String(EFF_ATLAS_QUERY_LIMIT),
+    // ArcGIS otherwise marks these anonymous query responses private.
+    cacheHint: 'true',
     f: 'json',
   });
   return `${SERVICE_URL}?${params}`;
