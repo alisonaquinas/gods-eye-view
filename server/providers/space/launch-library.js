@@ -1,3 +1,4 @@
+import { cachedFetch as fetch } from '../common/api-cache.js';
 import path from 'node:path';
 import { promises as fsp } from 'node:fs';
 import {

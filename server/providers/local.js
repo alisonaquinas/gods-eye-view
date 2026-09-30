@@ -1,3 +1,4 @@
+import { apiCachePlugin } from './common/api-cache.js';
 import { openSkyProxy } from './aircraft/opensky.js';
 import { celestrakProxy, rocketLaunchesProxy } from './space.js';
 import { tomtomProxy } from './traffic.js';
@@ -29,6 +30,7 @@ import { windProxy } from './wind.js';
 /** Construct the local provider plugins in their established order. */
 function localProviderPlugins() {
   return [
+    apiCachePlugin(),
     openSkyProxy(),
     celestrakProxy(),
     tomtomProxy(),

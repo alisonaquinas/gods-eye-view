@@ -1,3 +1,4 @@
+import { cachedFetch as fetch } from '../common/api-cache.js';
 /**
  * Vite plugin: adsb.lol military aircraft proxy with 12 s response cache.
  *

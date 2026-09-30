@@ -1,3 +1,4 @@
+import { cachedFetch as fetch } from '../common/api-cache.js';
 import { normalizeAdsbLolPointResponse } from '../../../src/data/adsbLolFallback.js';
 import {
   coalesceProxyRequest,

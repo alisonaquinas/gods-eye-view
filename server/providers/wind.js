@@ -1,3 +1,4 @@
+import { cachedFetch as fetch } from './common/api-cache.js';
 import { fetchGfsWind } from './wind/gfs.js';
 import { fetchIfsWind } from './wind/ifs.js';
 import { decodeWindGribMessage } from './wind/decode.js';
