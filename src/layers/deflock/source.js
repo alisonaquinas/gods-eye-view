@@ -9,6 +9,8 @@ import {
 const HOST = 'https://deflock.dontgetflocked.com';
 const MAX_TILES = 16;
 const MAX_RECORDS = 1500;
+const CATALOG_TTL_MS = 60 * 60 * 1000;
+const PRECISION_CACHE_LIMIT = 20_000;
 
 function text(value, limit = 160) {
   return typeof value === 'string' ? value.trim().slice(0, limit) : '';
@@ -75,21 +77,52 @@ function detailZoom(box) {
   return null;
 }
 
+function overlaps(box, [west, south, east, north]) {
+  return (
+    box.east >= west &&
+    box.west <= east &&
+    box.north >= south &&
+    box.south <= north
+  );
+}
+
+// Tile coordinates are quantized by zoom. Retain finer positions within this
+// catalog generation, but allow an edited OSM object to move immediately.
+function precisePosition(cache, record, zoom) {
+  const known = cache.get(record.id);
+  if (known && known.zoom > zoom && known.osmTimestamp === record.osmTimestamp)
+    return { ...record, latitude: known.latitude, longitude: known.longitude };
+  cache.delete(record.id);
+  cache.set(record.id, {
+    zoom,
+    latitude: record.latitude,
+    longitude: record.longitude,
+    osmTimestamp: record.osmTimestamp,
+  });
+  if (cache.size > PRECISION_CACHE_LIMIT)
+    cache.delete(cache.keys().next().value);
+  return record;
+}
+
 /** Independently named, viewport-bounded adapter for DeFlock's hourly catalog. */
-export function createDeflockSource({ fetchImpl } = {}) {
+export function createDeflockSource({ fetchImpl, now = Date.now } = {}) {
   const makeCountries = () =>
-    ['us', 'ca'].map((country) =>
-      createVectorTileSource({
+    ['us', 'ca'].map((country) => ({
+      // Broad geographic rejection before metadata; published bounds refine it.
+      bounds: country === 'ca' ? [-142, 41, -52, 84] : [-180, 17, -50, 84],
+      source: createVectorTileSource({
         tileJsonUrl: `${HOST}/cameras-${country}-hourly.json`,
         allowedOrigin: HOST,
         decode: decodeDeflockTile,
         fetchImpl,
         maxTiles: MAX_TILES,
-        ttlMs: 60 * 60 * 1000,
+        ttlMs: CATALOG_TTL_MS,
+        now,
       }),
-    );
+    }));
   let countries = makeCountries();
-  let sourcesCreatedAt = Date.now();
+  let precision = new Map();
+  let sourcesCreatedAt = now();
   return {
     async getRecords(_technologyId, boxes, { signal } = {}) {
       if (
@@ -100,52 +133,60 @@ export function createDeflockSource({ fetchImpl } = {}) {
         boxes.some(
           (box) =>
             !validTileBounds(box) ||
-            box.east - box.west > 3 ||
-            box.north - box.south > 3,
+            box.east - box.west > 3 + 1e-9 ||
+            box.north - box.south > 3 + 1e-9,
         )
       )
         throw new TypeError('DeFlock requires bounded view boxes');
       signal?.throwIfAborted();
-      if (Date.now() - sourcesCreatedAt >= 60 * 60 * 1000) {
+      if (now() - sourcesCreatedAt >= CATALOG_TTL_MS) {
         countries = makeCountries();
-        sourcesCreatedAt = Date.now();
+        precision = new Map();
+        sourcesCreatedAt = now();
       }
       const activeCountries = countries;
+      const activePrecision = precision;
       const records = new Map();
       let partial = false;
       let zoomIn = false;
+      let covered = false;
+      const failures = [];
       for (const box of boxes) {
         const zoom = detailZoom(box);
         if (zoom === null) {
           zoomIn = true;
           continue;
         }
-        for (const source of activeCountries) {
-          const metadata = await source.getMetadata(signal);
-          const [west, south, east, north] = metadata.bounds || [];
-          if (![west, south, east, north].every(Number.isFinite))
-            throw new Error('DeFlock coverage unavailable');
-          if (
-            box.east < west ||
-            box.west > east ||
-            box.north < south ||
-            box.south > north
-          )
-            continue;
-          const result = await source.fetchBounds(box, { zoom, signal });
-          partial ||= result.partial;
-          for (const record of result.tiles.flat()) {
-            if (
-              record.longitude >= box.west &&
-              record.longitude <= box.east &&
-              record.latitude >= box.south &&
-              record.latitude <= box.north
-            )
-              records.set(record.id, record);
+        for (const { source, bounds } of activeCountries) {
+          if (!overlaps(box, bounds)) continue;
+          try {
+            const metadata = await source.getMetadata(signal);
+            const [west, south, east, north] = metadata.bounds || [];
+            if (!validTileBounds({ west, south, east, north }))
+              throw new Error('DeFlock coverage unavailable');
+            if (!overlaps(box, metadata.bounds)) continue;
+            const result = await source.fetchBounds(box, { zoom, signal });
+            covered = true;
+            partial ||= result.partial;
+            for (const decoded of result.tiles.flat()) {
+              const record = precisePosition(activePrecision, decoded, zoom);
+              if (
+                record.longitude >= box.west &&
+                record.longitude <= box.east &&
+                record.latitude >= box.south &&
+                record.latitude <= box.north
+              )
+                records.set(record.id, record);
+            }
+          } catch (error) {
+            signal?.throwIfAborted();
+            failures.push(error);
           }
         }
       }
       signal?.throwIfAborted();
+      if (failures.length && !covered) throw failures[0];
+      partial ||= failures.length > 0;
       const all = [...records.values()];
       const center = boxes[0];
       if (all.length > MAX_RECORDS) {
@@ -163,7 +204,7 @@ export function createDeflockSource({ fetchImpl } = {}) {
         saturated: partial || all.length > MAX_RECORDS,
         stale: false,
         zoomIn,
-        fetchedAt: Date.now(),
+        fetchedAt: now(),
       };
     },
   };
