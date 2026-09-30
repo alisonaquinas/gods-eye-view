@@ -105,7 +105,24 @@ function precisePosition(cache, record, zoom) {
 }
 
 /** Independently named, viewport-bounded adapter for DeFlock's hourly catalog. */
-export function createDeflockSource({ fetchImpl, now = Date.now } = {}) {
+export function createDeflockSource({
+  fetchImpl = (...args) => globalThis.fetch(...args),
+  now = Date.now,
+} = {}) {
+  // Keep upstream identities (including the build hash) in the tile cache,
+  // but send every browser request through the server's shared API cache.
+  const fetchFromProxy = (input, init) => {
+    const url = new URL(input);
+    if (
+      url.origin !== HOST ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash
+    )
+      throw new Error('Invalid DeFlock URL');
+    return fetchImpl(`/api/deflock${url.pathname}`, init);
+  };
   const makeCountries = () =>
     ['us', 'ca'].map((country) => ({
       // Broad geographic rejection before metadata; published bounds refine it.
@@ -114,7 +131,7 @@ export function createDeflockSource({ fetchImpl, now = Date.now } = {}) {
         tileJsonUrl: `${HOST}/cameras-${country}-hourly.json`,
         allowedOrigin: HOST,
         decode: decodeDeflockTile,
-        fetchImpl,
+        fetchImpl: fetchFromProxy,
         maxTiles: MAX_TILES,
         ttlMs: CATALOG_TTL_MS,
         now,

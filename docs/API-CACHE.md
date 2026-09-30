@@ -51,7 +51,7 @@ force providers to refresh more frequently.
 The cache wraps server-side fetches for aircraft data, tracks, satellite TLEs,
 launches, traffic, terrain, FIRMS, GBFS, transit, CCTV source catalogs, regional
 briefing data, weather, wind metadata, cyclones, fire perimeters, Google Places,
-OSRM routes, EFF Atlas of Surveillance, and configured Overpass endpoints. Read-only POST caching is
+OSRM routes, EFF Atlas of Surveillance, DeFlock catalogs and detail tiles, and configured Overpass endpoints. Read-only POST caching is
 explicitly enabled for Places and Overpass.
 
 EFF Atlas requests use the `services8.arcgis.com` host policy. Its bounded
@@ -62,6 +62,13 @@ service mark these anonymous query responses cacheable. Responses marked
 private or no-store still retain the shared cache's normal protections.
 For example, include `"services8.arcgis.com":{"ttlMs":3600000}` in
 `GEV_API_CACHE_HOSTS` to retain upstream responses for one hour.
+
+DeFlock uses the same-origin `/api/deflock` proxy for both TileJSON catalogs
+and binary MVT tiles. Its upstream host policy is `deflock.dontgetflocked.com`;
+add `"deflock.dontgetflocked.com":{"ttlMs":3600000}` for one-hour shared reuse.
+Tile keys include the published build hash, keeping hourly datasets separate.
+The browser's bounded decoded-tile cache still applies. Without `REDIS_URL`,
+the proxy fetches upstream normally and coalesces simultaneous local requests.
 
 Browser-direct requests, WebSocket feeds, local receivers, radio/media streams,
 CCTV frames, and byte-range downloads keep their existing behavior. Token

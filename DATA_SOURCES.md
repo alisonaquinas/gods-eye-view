@@ -133,7 +133,10 @@ The richer structured dataset is licensed separately/commercially by TeleGeograp
 ### ALPR camera mapping
 
 The separate **DeFlock ALPR Cameras** layer reads the current published DeFlock
-map tiles, including both OSM nodes and way centroids. The existing Mapped ALPR
+map tiles, including both OSM nodes and way centroids. Catalogs and detail tiles
+are fetched through the bounded same-origin `/api/deflock` proxy and the
+optional shared Redis response cache; see [cache configuration](docs/API-CACHE.md).
+The existing Mapped ALPR
 Cameras layer is retained for its own camera controls and node-only workflow.
 Both may show the same OSM camera; turning on both does not imply independent
 confirmation. DeFlock locations are community mapped and may be inaccurate or
