@@ -104,6 +104,37 @@ The optional Local ADS-B layer and the broadcast-FM receiver use radio you recei
 
 ---
 
+### Georgia DOT / 511GA CCTV
+
+The [GEMA-SOC GDOT Live Traffic Cameras inventory](https://hub.arcgis.com/datasets/GEMA-SOC::gdot-live-traffic-cameras/explore)
+is read from its public ArcGIS feature layer on `services1.arcgis.com`.
+The current [511GA camera list](https://511ga.org/cctv) supplies active sites,
+coordinates, image IDs, and stream addresses. Matching tolerates the GDOT
+`CAM` / `CCTV` name change and leading zeros, with a location check before
+borrowing inventory metadata. Numeric ArcGIS IDs and 511 image IDs are not
+treated as interchangeable. Multiple views at a site remain separate cameras.
+
+Current 511 locations and availability take precedence. An unmatched older
+inventory camera is not added when 511 is available, which avoids resurrecting
+retired cameras. During a 511 outage, cached pages can be retained for up to
+24 hours; if no current catalog is available, the older ArcGIS cameras are a
+fallback and their legacy GDOT media may be unavailable.
+
+Catalog refreshes are coalesced for 15 minutes, with bounded response bodies,
+pagination, four concurrent 511 requests, and a 20-second refresh deadline.
+`CCTV_GEORGIA_MAX_SOURCES` defaults to 500 cameras nearest regional centers;
+`CCTV_GEORGIA_ENABLED=0` disables the pack. See `docs/API-CACHE.md` for shared
+cache behavior. Camera poses use low-confidence priors, not measured PTZ bearings.
+
+Snapshots use `https://511ga.org/map/Cctv/<imageId>`. Video uses the public
+`/Camera/GetVideoUrl` playback-link flow only while an HLS session is active,
+renewing links once per minute. Links must retain the registered GDOT host and
+camera path; signed links never reach browser catalogs or Redis. Streaming
+remains subject to the upstream host's availability and access policy. Live
+snapshot fallback was verified; the streaming host rejected playback from
+the development environment during verification. GDOT/511GA and GEMA-SOC are
+credited in the app; public access is not represented as an open media license.
+
 ## Bundled snapshots
 
 Static datasets shipped in the repo for an out-of-the-box experience. **None are MIT** — each keeps its own license (see the carve-out in [LICENSE](LICENSE)). Each folder also has its own provenance README.

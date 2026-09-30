@@ -220,6 +220,13 @@ export const DATA_CREDITS = [
     html: 'CCTV live video (Delaware): <a href="https://deldot.gov/map/" target="_blank" rel="noopener">DelDOT — Delaware Department of Transportation</a>',
   },
   {
+    key: 'georgia-cctv',
+    html:
+      'CCTV cameras, snapshots &amp; video (Georgia): ' +
+      '<a href="https://511ga.org/cctv" target="_blank" rel="noopener">Georgia DOT / 511GA</a>. ' +
+      'Location inventory: <a href="https://hub.arcgis.com/datasets/GEMA-SOC::gdot-live-traffic-cameras/explore" target="_blank" rel="noopener">GEMA-SOC — GDOT Live Traffic Cameras</a>.',
+  },
+  {
     key: 'caltrans-cctv',
     html:
       'CCTV cameras &amp; frames (California): Caltrans — ' +

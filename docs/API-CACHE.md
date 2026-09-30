@@ -75,6 +75,16 @@ CCTV frames, and byte-range downloads keep their existing behavior. Token
 creation and other POST/mutation requests are never opted in. Provider status
 and settings endpoints remain live.
 
+Georgia CCTV catalogs use `services1.arcgis.com` (ArcGIS, with `cacheHint=true`)
+and `511ga.org` (the public camera list). Both pass through the shared cache.
+The 511 list currently sets a session cookie, so its response bodies are **not**
+stored in Redis; normal cooldown protection still applies. A per-catalog
+15-minute memory cache coalesces refreshes and retains successful pages for
+up to 24 hours during failures. For example, set
+`"services1.arcgis.com":{"ttlMs":900000}` for 15-minute shared ArcGIS reuse.
+Live snapshots, signed playback-link requests, playlists, and video segments
+bypass Redis. Video links are renewed only in active, bounded HLS sessions.
+
 ## Local infrastructure
 
 The example deployment expects Redis at `gev:6379` and PostgreSQL at

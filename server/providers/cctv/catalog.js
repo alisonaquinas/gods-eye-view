@@ -4,6 +4,7 @@ import { DEFAULT_CCTV_SOURCE_FILE, CCTV_SOURCE_CACHE_MS } from './constants.js';
 import { allocateSourceCap, resolveCatalogCap } from './cap.js';
 import { loadGroundHeights, joinGroundHeights } from './groundHeights.js';
 import { normalizeSourceItem } from './normalize.js';
+import { createGeorgiaLoader } from './georgia.js';
 import {
   loadAustinSourcesFromOpenData,
   loadCaltransSourcesFromOpenData,
@@ -136,6 +137,14 @@ function loadSourcesFromEnv() {
 
 /** Create an independent catalog rooted in the consuming application. */
 export function createCctvCatalog({ sourceRoot = process.cwd() } = {}) {
+  const livePacks = [
+    ...LIVE_PACKS,
+    {
+      name: 'georgia',
+      enabled: () => envEnabled('CCTV_GEORGIA_ENABLED'),
+      load: createGeorgiaLoader(),
+    },
+  ];
   /** @type {Array<object>} Cached merged + normalized CCTV source list. */
   let _cctvSourceCache = [];
   /** @type {number} Epoch-ms when the source cache was last refreshed. */
@@ -196,7 +205,7 @@ export function createCctvCatalog({ sourceRoot = process.cwd() } = {}) {
           // Invoked inside the promise so a loader that throws synchronously
           // (a file-based pack on a malformed row) is isolated like any other
           // failed pack instead of rejecting the whole refresh.
-          LIVE_PACKS.map((pack) =>
+          livePacks.map((pack) =>
             Promise.resolve().then(() =>
               pack.enabled() ? pack.load({ sourceRoot }) : [],
             ),
@@ -213,7 +222,7 @@ export function createCctvCatalog({ sourceRoot = process.cwd() } = {}) {
         .filter((item) => item.id),
     });
     const packs = [
-      ...LIVE_PACKS.map((pack, index) =>
+      ...livePacks.map((pack, index) =>
         normalizePack(
           pack.name,
           liveResults[index]?.status === 'fulfilled'

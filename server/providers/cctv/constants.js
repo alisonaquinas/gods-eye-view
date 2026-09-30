@@ -8,12 +8,16 @@ export const DEFAULT_AUSTIN_MAX_SOURCES = 250;
  * Catalog-wide safety ceiling on served cameras. Each pack already caps
  * itself (nearest-to-anchor first); this bound only matters when the packs
  * together exceed it, and it is then filled round-robin across packs (see
- * cap.js) so no region is silently dropped. Sized above the sum of the
- * default per-pack caps so a default install never trims.
+ * cap.js) so no region is silently dropped as more packs are added.
  */
 export const DEFAULT_CCTV_MAX_SOURCES = 4000;
 /** Hard upper bound for CCTV_MAX_SOURCES; also sizes the health map. */
 export const CCTV_MAX_SOURCES_CEILING = 5000;
+/** Georgia: GEMA's GDOT location inventory and the current public 511 catalog. */
+export const GEORGIA_ARCGIS_URL =
+  'https://services1.arcgis.com/2iUE8l8JKrP2tygQ/arcgis/rest/services/GDOT_Live_Traffic_Cameras/FeatureServer/0/query';
+export const GEORGIA_511_URL = 'https://511ga.org/List/GetData/Cameras';
+export const DEFAULT_GEORGIA_MAX_SOURCES = 500;
 /** Reference point for Austin camera prioritization (Congress & 6th). */
 export const AUSTIN_DOWNTOWN = { lat: 30.2672, lon: -97.7431 };
 /** Caltrans CCTV: one JSON feed per district, identical schema statewide. */
