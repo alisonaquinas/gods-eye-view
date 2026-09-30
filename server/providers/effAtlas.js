@@ -7,6 +7,7 @@ import {
 import { readResponseJsonCapped, coalesceProxyRequest } from './common/http.js';
 import { requiredFiniteQueryNumber } from './common/query.js';
 import { makeRateLimiter, clientKey } from './common/rate-limit.js';
+import { cachedFetch } from './common/api-cache.js';
 
 const SERVICE_URL =
   'https://services8.arcgis.com/0emesQkjyT7tJv3q/arcgis/rest/services/AOS_CITY/FeatureServer/0/query';
@@ -75,7 +76,7 @@ function upstreamUrl({ category, west, south, east, north }) {
 
 /** Bounded, same-origin access to the public Atlas map's feature layer. */
 export function effAtlasProxy({
-  fetchImpl = (...args) => globalThis.fetch(...args),
+  fetchImpl = cachedFetch,
   now = () => Date.now(),
 } = {}) {
   const cache = new Map();

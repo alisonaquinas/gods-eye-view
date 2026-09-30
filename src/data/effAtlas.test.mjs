@@ -8,8 +8,23 @@ import {
   effAtlasProxy,
   parseEffAtlasQuery,
 } from '../../server/providers/effAtlas.js';
+import { createCachedFetch } from '../../server/providers/common/api-cache.js';
+import { apiCacheConfig } from '../../server/providers/common/api-cache-config.js';
+import { apiCacheStore } from '../testSupport/apiCacheStore.mjs';
 
 const box = '/?technology=eff-alpr&west=-75&south=39&east=-74&north=40';
+
+function proxyHandler(options) {
+  let handler;
+  effAtlasProxy(options).configureServer({
+    middlewares: {
+      use(_path, fn) {
+        handler = fn;
+      },
+    },
+  });
+  return handler;
+}
 
 function feature(id, longitude = -74.5) {
   return {
@@ -154,4 +169,59 @@ test('EFF Atlas proxy caps oversized upstream responses and reports truncation',
   assert.equal(result.status, 200);
   assert.equal(result.body.records.length, 1000);
   assert.equal(result.body.saturated, true);
+});
+
+test('separate Atlas servers share upstream responses through the API cache', async () => {
+  const store = apiCacheStore();
+  const config = apiCacheConfig({ REDIS_URL: 'redis://example.invalid' });
+  let calls = 0;
+  const fetchImpl = async () => {
+    calls++;
+    return Response.json({ features: [feature('AOS000109')] });
+  };
+  const handlers = [0, 1].map(() =>
+    proxyHandler({
+      fetchImpl: createCachedFetch({ config, store, fetchImpl }),
+    }),
+  );
+  const results = await Promise.all(
+    handlers.map((handler) => request(handler)),
+  );
+  assert.ok(results.every((result) => result.status === 200));
+  assert.deepEqual(
+    results.map((result) => result.body.records[0].id),
+    ['AOS000109', 'AOS000109'],
+  );
+  assert.equal(
+    calls,
+    1,
+    'fresh server instances reuse the same upstream response',
+  );
+});
+
+test('Atlas retains stale fallback when the shared cache is unavailable', async () => {
+  const store = apiCacheStore();
+  let time = 0,
+    calls = 0;
+  const handler = proxyHandler({
+    now: () => time,
+    fetchImpl: createCachedFetch({
+      config: apiCacheConfig({ REDIS_URL: 'redis://example.invalid' }),
+      store,
+      fetchImpl: async () => {
+        calls++;
+        return Response.json({ features: [feature('AOS000109')] });
+      },
+    }),
+  });
+  assert.equal((await request(handler)).body.stale, false);
+  time += 60 * 60 * 1000;
+  store.claim = async () => {
+    throw new Error('Cache unavailable');
+  };
+  const fallback = await request(handler);
+  assert.equal(fallback.status, 200);
+  assert.equal(fallback.body.stale, true);
+  assert.equal(fallback.body.records[0].id, 'AOS000109');
+  assert.equal(calls, 1, 'a Redis outage must not bypass request coordination');
 });
