@@ -2076,7 +2076,8 @@
       "src/data/effAtlas.js",
       "src/app/layers/effAtlas.js",
       "src/layers/effAtlas/index.js",
-      "src/layers/effAtlas/source.js"
+      "src/layers/effAtlas/source.js",
+      "src/data/viewportBounds.js"
     ],
     "external": [
       "hls.js",
@@ -2563,7 +2564,8 @@
       "src/data/infrastructureOverlayEntry.js",
       "src/data/effAtlas.js",
       "src/app/layers/effAtlas.js",
-      "src/layers/effAtlas/index.js"
+      "src/layers/effAtlas/index.js",
+      "src/data/viewportBounds.js"
     ],
     "external": [
       "hls.js",

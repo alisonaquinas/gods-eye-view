@@ -43,8 +43,8 @@ export function parseEffAtlasQuery(url) {
     north > 90 ||
     east <= west ||
     north <= south ||
-    east - west > EFF_ATLAS_MAX_VIEWPORT_DEGREES ||
-    north - south > EFF_ATLAS_MAX_VIEWPORT_DEGREES
+    east - west > EFF_ATLAS_MAX_VIEWPORT_DEGREES + 1e-9 ||
+    north - south > EFF_ATLAS_MAX_VIEWPORT_DEGREES + 1e-9
   )
     return null;
   return { category, west, south, east, north };
@@ -120,8 +120,10 @@ export function effAtlasProxy({
       records.push(record);
     }
     return {
-      records,
-      saturated: payload.exceededTransferLimit === true,
+      records: records.slice(0, EFF_ATLAS_QUERY_LIMIT),
+      saturated:
+        payload.exceededTransferLimit === true ||
+        records.length > EFF_ATLAS_QUERY_LIMIT,
       fetchedAt: now(),
     };
   }

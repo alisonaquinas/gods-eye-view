@@ -98,7 +98,9 @@ function evidenceUrl(value) {
   if (typeof value !== 'string' || value.length > 2048) return null;
   try {
     const url = new URL(value);
-    return url.protocol === 'https:' && !url.username && !url.password
+    return ['http:', 'https:'].includes(url.protocol) &&
+      !url.username &&
+      !url.password
       ? url.href
       : null;
   } catch {

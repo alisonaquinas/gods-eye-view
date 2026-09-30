@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { EFF_ATLAS_TECHNOLOGIES, normalizeEffAtlasFeature } from './effAtlas.js';
-import { effAtlasProxy, parseEffAtlasQuery } from '../../server/providers/effAtlas.js';
+import {
+  EFF_ATLAS_TECHNOLOGIES,
+  normalizeEffAtlasFeature,
+} from './effAtlas.js';
+import {
+  effAtlasProxy,
+  parseEffAtlasQuery,
+} from '../../server/providers/effAtlas.js';
 
 const box = '/?technology=eff-alpr&west=-75&south=39&east=-74&north=40';
 
@@ -41,13 +47,25 @@ function request(handler, url = box, method = 'GET') {
 test('EFF Atlas categories are separate and feature normalization rejects unsafe rows', () => {
   assert.equal(EFF_ATLAS_TECHNOLOGIES.length, 12);
   assert.equal(new Set(EFF_ATLAS_TECHNOLOGIES.map(({ id }) => id)).size, 12);
-  assert.equal(normalizeEffAtlasFeature(feature('AOS000109')).technologyId, 'eff-alpr');
+  assert.equal(
+    normalizeEffAtlasFeature(feature('AOS000109')).technologyId,
+    'eff-alpr',
+  );
   assert.equal(normalizeEffAtlasFeature(feature('wrong')), null);
   assert.equal(normalizeEffAtlasFeature(feature('AOS000109', 200)), null);
+  const legacyEvidence = feature('AOS000110');
+  legacyEvidence.attributes.Link_1 = 'http://example.org/archived-evidence';
+  assert.equal(
+    normalizeEffAtlasFeature(legacyEvidence).evidenceUrl,
+    legacyEvidence.attributes.Link_1,
+  );
   assert.equal(
     normalizeEffAtlasFeature({
       ...feature('AOS000109'),
-      attributes: { ...feature('AOS000109').attributes, Link_1: 'javascript:alert(1)' },
+      attributes: {
+        ...feature('AOS000109').attributes,
+        Link_1: 'javascript:alert(1)',
+      },
     }).evidenceUrl,
     null,
   );
@@ -59,21 +77,81 @@ test('EFF Atlas proxy enforces bounds, fixes the technology filter, and caches n
     fetchImpl: async (url) => {
       calls++;
       const upstream = new URL(url);
-      assert.equal(upstream.searchParams.get('where'), "Technology='Automated License Plate Readers' OR Technology='Automated LIcense Plate Readers'");
+      assert.equal(
+        upstream.searchParams.get('where'),
+        "Technology='Automated License Plate Readers' OR Technology='Automated LIcense Plate Readers'",
+      );
       assert.equal(upstream.searchParams.get('resultRecordCount'), '1000');
-      return new Response(JSON.stringify({
-        features: [feature('AOS000109'), feature('AOS000109'), feature('AOS000216', -80)],
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          features: [
+            feature('AOS000109'),
+            feature('AOS000109'),
+            feature('AOS000216', -80),
+          ],
+        }),
+        { status: 200 },
+      );
     },
   });
   let handler;
-  proxy.configureServer({ middlewares: { use(_path, fn) { handler = fn; } } });
-  assert.equal(parseEffAtlasQuery(new URL('/?technology=eff-alpr&west=-75&south=39&east=-50&north=40', 'http://localhost')), null);
-  assert.equal((await request(handler, '/?technology=eff-alpr%27%20OR%201%3D1&west=-75&south=39&east=-74&north=40')).status, 400);
+  proxy.configureServer({
+    middlewares: {
+      use(_path, fn) {
+        handler = fn;
+      },
+    },
+  });
+  assert.equal(
+    parseEffAtlasQuery(
+      new URL(
+        '/?technology=eff-alpr&west=-75&south=39&east=-50&north=40',
+        'http://localhost',
+      ),
+    ),
+    null,
+  );
+  assert.equal(
+    (
+      await request(
+        handler,
+        '/?technology=eff-alpr%27%20OR%201%3D1&west=-75&south=39&east=-74&north=40',
+      )
+    ).status,
+    400,
+  );
   assert.equal((await request(handler, box, 'POST')).status, 405);
   const first = await request(handler);
   assert.equal(first.status, 200);
-  assert.deepEqual(first.body.records.map(({ id }) => id), ['AOS000109']);
+  assert.deepEqual(
+    first.body.records.map(({ id }) => id),
+    ['AOS000109'],
+  );
   assert.equal((await request(handler)).status, 200);
   assert.equal(calls, 1);
+});
+
+test('EFF Atlas proxy caps oversized upstream responses and reports truncation', async () => {
+  const proxy = effAtlasProxy({
+    fetchImpl: async () =>
+      new Response(
+        JSON.stringify({
+          features: Array.from({ length: 1001 }, (_, index) =>
+            feature(`AOS${String(index).padStart(6, '0')}`),
+          ),
+        }),
+      ),
+  });
+  let handler;
+  proxy.configureServer({
+    middlewares: {
+      use(_path, fn) {
+        handler = fn;
+      },
+    },
+  });
+  const result = await request(handler);
+  assert.equal(result.status, 200);
+  assert.equal(result.body.records.length, 1000);
+  assert.equal(result.body.saturated, true);
 });
