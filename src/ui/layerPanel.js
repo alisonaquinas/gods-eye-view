@@ -39,6 +39,7 @@ const PANEL_GROUPS = [
     label: 'Infrastructure',
     ids: [
       'alpr-cameras',
+      'deflock-cameras',
       'military-installations',
       'local-datacenters',
       'telegeography-submarine-cables',
@@ -79,6 +80,7 @@ const PANEL_LABELS = {
   bikeshare: 'Bike Share',
   cctv: 'Cameras',
   'alpr-cameras': 'Mapped ALPR Cameras',
+  'deflock-cameras': 'DeFlock ALPR Cameras',
   'local-datacenters': 'Data Centers',
   'local-firms': 'Active Fires',
   ...Object.fromEntries(

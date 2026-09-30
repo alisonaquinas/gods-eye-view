@@ -2077,7 +2077,10 @@
       "src/app/layers/effAtlas.js",
       "src/layers/effAtlas/index.js",
       "src/layers/effAtlas/source.js",
-      "src/data/viewportBounds.js"
+      "src/data/viewportBounds.js",
+      "src/app/layers/deflock.js",
+      "src/layers/deflock/index.js",
+      "src/layers/deflock/source.js"
     ],
     "external": [
       "hls.js",
@@ -2565,7 +2568,9 @@
       "src/data/effAtlas.js",
       "src/app/layers/effAtlas.js",
       "src/layers/effAtlas/index.js",
-      "src/data/viewportBounds.js"
+      "src/data/viewportBounds.js",
+      "src/app/layers/deflock.js",
+      "src/layers/deflock/index.js"
     ],
     "external": [
       "hls.js",
@@ -2910,9 +2915,13 @@
       "src/layers/perimeters/records.js",
       "src/layers/submarineCables/bundledSource.js",
       "src/data/effAtlas.js",
-      "src/layers/effAtlas/source.js"
+      "src/layers/effAtlas/source.js",
+      "src/layers/deflock/source.js",
+      "src/data/tomtomTiles.js",
+      "src/sources/vectorTiles.js",
+      "src/sources/phaseTiming.js"
     ],
-    "external": []
+    "external": ["@mapbox/vector-tile", "pbf"]
   },
   "nominatim-provider": {
     "exports": ["./search/nominatim"],

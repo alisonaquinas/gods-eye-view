@@ -21,6 +21,7 @@ How to read this:
 | **NOAA nowCOAST lightning density** (`nowcoast.noaa.gov/geoserver/observations/lightning_detection/ows`) | Lightning density: 15-minute accumulated strike density on an approximately 8 km grid, Americas and Pacific. Keyless; layer metadata refreshed every 10 minutes, exact-time images cached for up to 24 hours | NOAA Level-5 derived product from Vaisala NLDN/GLD360; the [product description](https://ocean.weather.gov/lightning/lightning_pdd.php) permits public distribution of this density product, not of raw Vaisala detections | "NOAA/NWS nowCOAST; derived from Vaisala NLDN/GLD360" |
 | **NOAA NHC / CPHC advisories** (`www.nhc.noaa.gov/CurrentStorms.json` + the `mapservices.weather.noaa.gov` tropical weather summary MapServer) | Cyclone advisories: storm positions, forecast tracks, points and cones for the Atlantic and eastern/central North Pacific. Keyless through `/api/cyclones`; cached for 5 minutes | [NWS public-data terms](https://www.weather.gov/disclaimer); no endorsement implied | "NOAA/NWS NHC / CPHC" |
 | **OpenStreetMap** | Map and place data (roads, military areas and names, ALPR, place search, outlines); via vector tiles, hourly ALPR extract, bundled data, Nominatim and optional self-configured Overpass | [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) | © OpenStreetMap contributors |
+| **DeFlock** ([map](https://maps.deflock.org/), [published map source](https://github.com/FoggedLens/deflockhopper_maps)) | Separate DeFlock ALPR Cameras layer, using DeFlock's hourly US/Canada detail tiles. Includes mapped OSM nodes and way centroids, with operator/brand tags when available. Viewport-bounded; at most 16 tiles per country and 1,500 displayed records. | Camera data is derived from OpenStreetMap under [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/). DeFlock app code has its own license. | "DeFlock · © OpenStreetMap contributors"; linked OSM object on selection. |
 | **Google Map Tiles API** (Photorealistic 3D Tiles) + Places/Geocoding | The 3D globe, voice scene context, and on-demand nearby installation search                                                         | Google Maps Platform ToS (proprietary, your own key + billing)                                                                                                                                                                                                                                                                                        | "Google" / "Google Maps" logo — **shown in-app**, required                                                                                  |
 | **OpenSky Network**                                                   | Primary worldwide live-flight snapshot                                                                                              | Non-commercial research/education license                                                                                                                                                                                                                                                                                                             | Schäfer et al., _"Bringing Up OpenSky"_, IPSN 2014 + opensky-network.org                                                                    |
 | **adsb.lol point API**                                                | Bounded live-flight fallback when OpenSky has no usable snapshot                                                                    | ODbL 1.0                                                                                                                                                                                                                                                                                                                                              | adsb.lol contributors; `api.adsb.lol/v2/lat/{lat}/lon/{lon}/dist/{radius}`                                                                  |
@@ -130,6 +131,18 @@ The submarine-cable GeoJSON is **CC BY-NC-SA 3.0** (Attribution-**NonCommercial*
 The richer structured dataset is licensed separately/commercially by TeleGeography.
 
 ### ALPR camera mapping
+
+The separate **DeFlock ALPR Cameras** layer reads the current published DeFlock
+map tiles, including both OSM nodes and way centroids. Catalogs and detail tiles
+are fetched through the bounded same-origin `/api/deflock` proxy and the
+optional shared Redis response cache; see [cache configuration](docs/API-CACHE.md).
+The existing Mapped ALPR
+Cameras layer is retained for its own camera controls and node-only workflow.
+Both may show the same OSM camera; turning on both does not imply independent
+confirmation. DeFlock locations are community mapped and may be inaccurate or
+outdated. A way marker is its mapped centroid, not necessarily a camera's exact
+position. Last OSM edit is not field verification. Neither layer shows plate
+records, camera video or current operating status.
 
 The optional ALPR layer reads OpenStreetMap `surveillance:type=ALPR` nodes
 from a community-hosted hourly US/Canada extract, using detail vector tiles.

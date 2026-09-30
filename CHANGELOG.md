@@ -1,5 +1,9 @@
 # Changelog
 
+- Added a separate DeFlock ALPR Cameras layer from DeFlock's published hourly
+  US/Canada map tiles. It includes mapped OSM nodes and way centroids, links to
+  each OSM object, and credits DeFlock and OpenStreetMap.
+
 - Added twelve independent EFF Atlas of Surveillance technology layers with
   city-scale loading, source evidence links, shareable layer state, and clear
   labeling of approximate jurisdiction points. The bounded server proxy reads

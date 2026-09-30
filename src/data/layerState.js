@@ -580,6 +580,15 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     disposition: 'enabled+options',
     optionOwner: 'cctv',
   }),
+  ...['deflock-cameras']
+    .filter((id) => Object.hasOwn(LAYER_STATE_TOKEN_RESERVATIONS, id))
+    .map((id) =>
+      Object.freeze({
+        id,
+        token: LAYER_STATE_TOKEN_RESERVATIONS[id],
+        disposition: 'enabled-only',
+      }),
+    ),
   Object.freeze({ id: 'directions', token: 'n', disposition: 'enabled-only' }),
   Object.freeze({ id: 'earthquakes', token: 'e', disposition: 'enabled-only' }),
   ...Object.keys(LAYER_STATE_TOKEN_RESERVATIONS)
