@@ -1,3 +1,4 @@
+import { cachedFetch as fetch } from './common/api-cache.js';
 import path from 'node:path';
 import { promises as fsp } from 'node:fs';
 
@@ -129,7 +130,9 @@ export function terrainHeightsProxy() {
       const chunk = points.slice(i, i + UPSTREAM_CHUNK);
       let chunkResults = [];
       try {
-        chunkResults = await fetchTerrainChunkWithRetry(chunk);
+        chunkResults = await fetchTerrainChunkWithRetry(chunk, {
+          fetchImpl: fetch,
+        });
       } catch (error) {
         firstError = firstError || error;
       }

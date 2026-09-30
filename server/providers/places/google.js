@@ -1,3 +1,4 @@
+import { cachedReadOnlyFetch as fetch } from '../common/api-cache.js';
 import {
   googleServerApiKey,
   keylessGooglePlacesResponse,

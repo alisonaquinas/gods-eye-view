@@ -1,3 +1,4 @@
+import { cachedFetch as fetch } from './common/api-cache.js';
 import { normalizeFirePerimeterSnapshot } from '../../src/layers/perimeters/records.js';
 import {
   readResponseJsonCapped,
@@ -48,7 +49,7 @@ const MIB = 1024 * 1024;
 
 /** Fixed-origin, bounded WFIGS and InciWeb routes for dev and preview. */
 export function firePerimetersProxy({
-  fetchImpl = (...args) => globalThis.fetch(...args),
+  fetchImpl = (...args) => fetch(...args),
   now = () => Date.now(),
 } = {}) {
   const cache = new Map();

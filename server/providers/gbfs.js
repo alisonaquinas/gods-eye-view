@@ -1,3 +1,4 @@
+import { cachedFetch as fetch } from './common/api-cache.js';
 import { readResponseTextCapped } from './common/http.js';
 import {
   isAllowedGbfsHost,

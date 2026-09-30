@@ -46,9 +46,12 @@
       "src/data/adsbLolFallback.js",
       "src/data/aisStreamAdapter.js",
       "src/data/aisWatchdog.js",
-      "src/sources/httpBody.js"
+      "src/sources/httpBody.js",
+      "server/providers/common/api-cache.js",
+      "server/providers/common/api-cache-config.js",
+      "server/providers/common/redis-cache-store.js"
     ],
-    "external": ["ws"]
+    "external": ["ws", "@redis/client"]
   },
   "adsb-lol-source": {
     "exports": ["./sources/adsb-lol"],
@@ -70,9 +73,12 @@
       "src/data/placeProviderPayloads.js",
       "src/data/routeSteps.js",
       "src/sources/httpBody.js",
-      "src/sources/rateLimit.js"
+      "src/sources/rateLimit.js",
+      "server/providers/common/api-cache.js",
+      "server/providers/common/api-cache-config.js",
+      "server/providers/common/redis-cache-store.js"
     ],
-    "external": []
+    "external": ["@redis/client"]
   },
   "place-payloads": {
     "exports": ["./sources/places"],
@@ -88,9 +94,12 @@
       "server/providers/space/launch-library.js",
       "server/providers/common/http.js",
       "src/data/spaceProviderRequests.js",
-      "src/sources/httpBody.js"
+      "src/sources/httpBody.js",
+      "server/providers/common/api-cache.js",
+      "server/providers/common/api-cache-config.js",
+      "server/providers/common/redis-cache-store.js"
     ],
-    "external": []
+    "external": ["@redis/client"]
   },
   "space-requests": {
     "exports": ["./sources/space"],
@@ -102,9 +111,12 @@
     "exports": ["./server/providers/terrain"],
     "modules": [
       "server/providers/terrain.js",
-      "src/data/terrainHeightsProxy.js"
+      "src/data/terrainHeightsProxy.js",
+      "server/providers/common/api-cache.js",
+      "server/providers/common/api-cache-config.js",
+      "server/providers/common/redis-cache-store.js"
     ],
-    "external": []
+    "external": ["@redis/client"]
   },
   "terrain-source": {
     "exports": ["./sources/terrain"],
@@ -114,8 +126,14 @@
   "traffic-provider": {
     "runtime": "node",
     "exports": ["./server/providers/traffic"],
-    "modules": ["server/providers/traffic.js", "src/data/tomtomTiles.js"],
-    "external": []
+    "modules": [
+      "server/providers/traffic.js",
+      "src/data/tomtomTiles.js",
+      "server/providers/common/api-cache.js",
+      "server/providers/common/api-cache-config.js",
+      "server/providers/common/redis-cache-store.js"
+    ],
+    "external": ["@redis/client"]
   },
   "traffic-source": {
     "exports": ["./sources/traffic"],
@@ -130,8 +148,14 @@
   "firms-provider": {
     "runtime": "node",
     "exports": ["./server/providers/firms"],
-    "modules": ["server/providers/firms.js", "src/data/firmsCsv.js"],
-    "external": []
+    "modules": [
+      "server/providers/firms.js",
+      "src/data/firmsCsv.js",
+      "server/providers/common/api-cache.js",
+      "server/providers/common/api-cache-config.js",
+      "server/providers/common/redis-cache-store.js"
+    ],
+    "external": ["@redis/client"]
   },
   "gbfs-provider": {
     "runtime": "node",
@@ -140,9 +164,12 @@
       "server/providers/gbfs.js",
       "server/providers/common/http.js",
       "src/data/gbfsSource.js",
-      "src/sources/httpBody.js"
+      "src/sources/httpBody.js",
+      "server/providers/common/api-cache.js",
+      "server/providers/common/api-cache-config.js",
+      "server/providers/common/redis-cache-store.js"
     ],
-    "external": []
+    "external": ["@redis/client"]
   },
   "gbfs-source": {
     "exports": ["./sources/gbfs"],
@@ -170,9 +197,12 @@
       "scripts/google-server-key.mjs",
       "src/data/cctvFootprint.js",
       "src/sources/cctvTypes.js",
-      "src/sources/httpBody.js"
+      "src/sources/httpBody.js",
+      "server/providers/common/api-cache.js",
+      "server/providers/common/api-cache-config.js",
+      "server/providers/common/redis-cache-store.js"
     ],
-    "external": []
+    "external": ["@redis/client"]
   },
   "radio-provider": {
     "runtime": "node",
@@ -209,9 +239,12 @@
       "src/data/routeSteps.js",
       "src/sources/httpBody.js",
       "src/sources/overpass.js",
-      "src/sources/rateLimit.js"
+      "src/sources/rateLimit.js",
+      "server/providers/common/api-cache.js",
+      "server/providers/common/api-cache-config.js",
+      "server/providers/common/redis-cache-store.js"
     ],
-    "external": []
+    "external": ["@redis/client"]
   },
   "military-installations-provider": {
     "runtime": "node",
@@ -228,9 +261,12 @@
       "server/providers/overpass/geometry.js",
       "server/providers/overpass/transport.js",
       "src/sources/httpBody.js",
-      "src/sources/rateLimit.js"
+      "src/sources/rateLimit.js",
+      "server/providers/common/api-cache.js",
+      "server/providers/common/api-cache-config.js",
+      "server/providers/common/redis-cache-store.js"
     ],
-    "external": []
+    "external": ["@redis/client"]
   },
   "regional-provider": {
     "runtime": "node",
@@ -255,9 +291,12 @@
       "src/data/local_data/natural_earth/regions.json",
       "src/data/naturalEarthRegions.js",
       "src/data/bundledJson.js",
-      "src/data/retryableLoad.js"
+      "src/data/retryableLoad.js",
+      "server/providers/common/api-cache.js",
+      "server/providers/common/api-cache-config.js",
+      "server/providers/common/redis-cache-store.js"
     ],
-    "external": []
+    "external": ["@redis/client"]
   },
   "openai-provider": {
     "runtime": "node",
@@ -2906,9 +2945,12 @@
       "src/sources/transitHistory.js",
       "src/sources/transitService.js",
       "src/sources/transitHistoryStore.js",
-      "src/sources/rateLimit.js"
+      "src/sources/rateLimit.js",
+      "server/providers/common/api-cache.js",
+      "server/providers/common/api-cache-config.js",
+      "server/providers/common/redis-cache-store.js"
     ],
-    "external": ["pbf"]
+    "external": ["pbf", "@redis/client"]
   },
   "transit-source": {
     "exports": ["./sources/transit"],

@@ -1,3 +1,4 @@
+import { cachedReadOnlyFetch as fetch } from '../common/api-cache.js';
 import { makeRateLimiter, clientKey } from '../common/rate-limit.js';
 import { haversineKm } from '../common/geo.js';
 import { readResponseTextCapped } from '../common/http.js';
