@@ -117,14 +117,16 @@ function writeCodecFixture(cwd, rows, entries) {
   return path.join(cwd, SOURCE_PATH);
 }
 
-const baseRows = reservationRows.filter(([id]) => !id.startsWith('eff-'));
+const baseRows = reservationRows.filter(([id]) =>
+  Object.hasOwn(LEGACY_LAYER_STATE_TOKENS, id),
+);
 
 test('reservation ledger is complete, pinned, and rejects duplicate or malformed rows', () => {
   assert.deepEqual(
     { ...parseLayerStateTokenReservations(reservationRows) },
     { ...LAYER_STATE_TOKEN_RESERVATIONS },
   );
-  assert.equal(Object.keys(LAYER_STATE_TOKEN_RESERVATIONS).length, 40);
+  assert.equal(Object.keys(LAYER_STATE_TOKEN_RESERVATIONS).length, 41);
   assert.deepEqual(
     { ...parseLayerStateTokenReservations(baseRows) },
     { ...LEGACY_LAYER_STATE_TOKENS },

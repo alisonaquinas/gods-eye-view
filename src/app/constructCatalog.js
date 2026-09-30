@@ -21,6 +21,7 @@ import { createApplicationSatellites } from './layers/satellites.js';
 import { createApplicationLaunches } from './layers/rocketLaunches.js';
 import { createApplicationAlpr } from './layers/alprCameras.js';
 import { createApplicationEffAtlasLayers } from './layers/effAtlas.js';
+import { createApplicationDeflock } from './layers/deflock.js';
 import { createApplicationLocalAdsb } from './layers/localAdsb.js';
 import { createApplicationAwareness } from './layers/militaryAwareness.js';
 import { createApplicationFirms } from './layers/firms.js';
@@ -58,6 +59,7 @@ const SOURCE_METHODS = Object.freeze({
   'fire-perimeters': ['getSnapshot'],
   cables: ['fetch'],
   'eff-atlas': ['getRecords'],
+  deflock: ['getRecords'],
 });
 
 /**
@@ -151,6 +153,7 @@ export function createApplicationCatalog({
           source: sources['fire-perimeters'],
         }),
         createApplicationAlpr({ surface, source: sources.alpr }),
+        createApplicationDeflock({ source: sources.deflock }),
         ...createApplicationEffAtlasLayers({
           categories: EFF_ATLAS_TECHNOLOGIES,
           source: sources['eff-atlas'],

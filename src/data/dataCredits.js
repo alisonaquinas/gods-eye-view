@@ -94,6 +94,12 @@ export function hideOsmCredit(viewer, owner) {
 export const DATA_CREDITS = [
   // ── Live sources ────────────────────────────────────────────────
   {
+    key: 'deflock',
+    html:
+      'Mapped ALPR cameras: <a href="https://maps.deflock.org/" target="_blank" rel="noopener">DeFlock</a> ' +
+      '(OSM-derived data; attribution and ODbL in the shared map-data credit)',
+  },
+  {
     key: 'opensky',
     html:
       'Flights: OpenSky Network — Schäfer et al., ' +
