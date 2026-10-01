@@ -26,6 +26,15 @@ export function _renderCctvState(state) {
   const enabled = !!state?.enabled && !!this.actions.isEnabled();
   const activeId = state?.activeCameraId || '';
   const activeCamera = state?.activeCamera || null;
+  if (this._cctvWebsiteLink) {
+    const href = enabled && activeId && activeCamera?.websiteUrl;
+    const allowed =
+      typeof href === 'string' &&
+      /^https:\/\/511ga\.org\/map#camera-[1-9]\d{0,9}$/.test(href);
+    this._cctvWebsiteLink.hidden = !allowed;
+    if (allowed) this._cctvWebsiteLink.href = href;
+    else this._cctvWebsiteLink.removeAttribute('href');
+  }
 
   // Auto-expand the panel when the active camera CHANGES to a new non-null
   // id while the layer is enabled. Covers click-on-globe, panel controls,

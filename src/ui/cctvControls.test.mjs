@@ -9,6 +9,7 @@ function element() {
     src: '',
     removeAttribute(name) {
       if (name === 'src') this.src = '';
+      if (name === 'href') delete this.href;
     },
     classList: {
       add(...values) {
@@ -27,6 +28,41 @@ function element() {
     },
   };
 }
+
+test('selected Georgia camera links follow selection and disappear when unavailable or disabled', (t) => {
+  const { controls } = fixture(t);
+  controls.actions.setPanelCollapsed = () => {};
+  controls._cctvWebsiteLink = element();
+  const render = (url, enabled = true) =>
+    controls._renderCctvState({
+      enabled,
+      activeCameraId: 'ga',
+      activeCamera: { id: 'ga', websiteUrl: url },
+    });
+  render('https://511ga.org/map#camera-456');
+  assert.equal(controls._cctvWebsiteLink.hidden, false);
+  assert.equal(
+    controls._cctvWebsiteLink.href,
+    'https://511ga.org/map#camera-456',
+  );
+  render('https://511ga.org/map#camera-789');
+  assert.equal(
+    controls._cctvWebsiteLink.href,
+    'https://511ga.org/map#camera-789',
+  );
+  for (const url of [
+    '',
+    'javascript:alert(1)',
+    'https://511ga.org.evil.test/map#camera-1',
+  ]) {
+    render(url);
+    assert.equal(controls._cctvWebsiteLink.hidden, true);
+    assert.equal(controls._cctvWebsiteLink.href, undefined);
+  }
+  render('https://511ga.org/map#camera-456', false);
+  assert.equal(controls._cctvWebsiteLink.hidden, true);
+  assert.equal(controls._cctvWebsiteLink.href, undefined);
+});
 function fixture(t) {
   const prior = globalThis.Image;
   const requests = [];

@@ -137,12 +137,13 @@ function loadSourcesFromEnv() {
 
 /** Create an independent catalog rooted in the consuming application. */
 export function createCctvCatalog({ sourceRoot = process.cwd() } = {}) {
+  const loadGeorgiaSources = createGeorgiaLoader({ background: true });
   const livePacks = [
     ...LIVE_PACKS,
     {
       name: 'georgia',
       enabled: () => envEnabled('CCTV_GEORGIA_ENABLED'),
-      load: createGeorgiaLoader(),
+      load: loadGeorgiaSources,
     },
   ];
   /** @type {Array<object>} Cached merged + normalized CCTV source list. */
@@ -266,5 +267,6 @@ export function createCctvCatalog({ sourceRoot = process.cwd() } = {}) {
     return _cctvSourceCache;
   }
 
+  getCctvSources.close = () => loadGeorgiaSources.close();
   return getCctvSources;
 }

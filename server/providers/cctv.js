@@ -132,6 +132,7 @@ export function cctvProxy({ sourceRoot = process.cwd() } = {}) {
 
   const installMiddleware = (server) => {
     server.httpServer?.on('close', () => {
+      getCctvSources.close();
       puller.shutdown();
     });
     server.middlewares.use('/api/cctv', async (req, res) => {
@@ -165,6 +166,7 @@ export function cctvProxy({ sourceRoot = process.cwd() } = {}) {
               poseSource: source.poseSource,
               license: source.license,
               credit: source.credit || '',
+              websiteUrl: source.websiteUrl || '',
               code: source.code || '',
               groundHeights: source.groundHeights || null,
             })),

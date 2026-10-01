@@ -13,6 +13,10 @@ import {
   georgiaStreamUrl,
   resolveGeorgiaStreamUrl,
 } from '../../server/providers/cctv/georgia.js';
+import {
+  GEORGIA_CATALOG_KEY,
+  GEORGIA_CATALOG_STALE_MS,
+} from '../../server/providers/cctv/georgia-cache.js';
 import { createCctvCatalog } from '../../server/providers/cctv/catalog.js';
 import { createCachedFetch } from '../../server/providers/common/api-cache.js';
 import { apiCacheConfig } from '../../server/providers/common/api-cache-config.js';
@@ -29,6 +33,8 @@ import {
 const stream =
   'https://sfs-msc-pub-lq-01.navigator.dot.ga.gov/rtplive/GDOT-CCTV-0729/playlist.m3u8';
 const site = (id = 123) => ({
+  id: 456,
+  DT_RowId: '456',
   visible: true,
   jsonData: { name: 'GDOT-CCTV-0729' },
   location: 'I-75 at I-675',
@@ -84,7 +90,8 @@ test('Georgia joins CAM/CCTV names and zero padding, keeps current media and ded
   assert.equal(camera.url, stream);
   assert.equal(camera.snapshotUrl, 'https://511ga.org/map/Cctv/123');
   assert.equal(camera.lat, 33.749, 'current coordinates take precedence');
-  assert.equal(camera.city, 'Fulton County, Georgia');
+  assert.equal(camera.city, 'Georgia', 'GIS county is not imported');
+  assert.equal(camera.websiteUrl, 'https://511ga.org/map#camera-456');
   assert.equal(camera.georgiaImageId, '123');
   assert.equal(camera.headingDeg, 180);
   assert.equal(
@@ -92,7 +99,7 @@ test('Georgia joins CAM/CCTV names and zero padding, keeps current media and ded
     'low',
     'road direction is not PTZ facing',
   );
-  assert.match(camera.credit, /GEMA-SOC/);
+  assert.doesNotMatch(camera.credit, /GEMA-SOC/);
   assert.equal(mergeGeorgiaCameras([feature()], [current, current]).length, 1);
 });
 
@@ -121,7 +128,12 @@ test('Georgia preserves separate views, rejects blocked cameras and unsafe media
 
 test('Georgia uses matched ArcGIS geometry when absent, rejects invalid coordinates and reused distant names', () => {
   const missing = { ...site(), latLng: null };
-  assert.equal(mergeGeorgiaCameras([feature()], [missing])[0].lat, 33.7491);
+  const [positioned] = mergeGeorgiaCameras([feature()], [missing]);
+  assert.equal(positioned.lat, 33.7491);
+  assert.match(positioned.credit, /GEMA-SOC/);
+  assert.equal(positioned.city, 'Georgia');
+  assert.equal(positioned.name, missing.location);
+  assert.equal(positioned.url, stream);
   assert.deepEqual(mergeGeorgiaCameras([], [missing]), []);
   const far = {
     ...site(),
@@ -154,15 +166,9 @@ test('Georgia uses matched ArcGIS geometry when absent, rejects invalid coordina
   );
 });
 
-test('ArcGIS-only outage fallback accepts only GDOT snapshot and stream hosts', () => {
-  const [camera] = mergeGeorgiaCameras([feature()], null);
-  assert.equal(camera.sourceKind, 'georgia-arcgis');
-  assert.equal(camera.feedType, 'hls');
-  const bad = feature();
-  bad.attributes.HLS = 'http://localhost/live/playlist.m3u8';
-  bad.attributes.url =
-    'http://navigator-c2c.dot.ga.gov.evil.test/snapshots/a.jpg';
-  assert.deepEqual(mergeGeorgiaCameras([bad], null), []);
+test('ArcGIS never introduces cameras when 511 is unavailable and rejects unsafe media', () => {
+  assert.deepEqual(mergeGeorgiaCameras([feature()], null), []);
+  assert.deepEqual(mergeGeorgiaCameras([feature()], undefined), []);
   for (const badUrl of [
     stream.replace('https:', 'http:'),
     stream.replace('.gov/', '.gov:8443/'),
@@ -192,6 +198,7 @@ test('Georgia pagination fetches all pages, respects concurrency and the output 
       const url = new URL(input);
       if (String(input).startsWith(GEORGIA_ARCGIS_URL)) {
         assert.equal(url.searchParams.get('outSR'), '4326');
+        assert.equal(url.searchParams.get('outFields'), 'ObjectId,name');
         assert.equal(url.searchParams.get('cacheHint'), 'true');
         assert.equal(url.searchParams.get('orderByFields'), 'ObjectId');
         const offset = Number(url.searchParams.get('resultOffset'));
@@ -372,6 +379,171 @@ test('511 cookie responses keep normal shared-cache protections', async (t) => {
     code: 'API_CACHE_COOLDOWN',
   });
   assert.equal(calls, 1);
+});
+
+test('Georgia stores the complete public mapping without cookies or tokens and reuses it across restarts and caps', async (t) => {
+  setup(t, { CCTV_GEORGIA_MAX_SOURCES: '1' });
+  const store = apiCacheStore();
+  let calls = 0;
+  const fetchImpl = async (input) => {
+    calls++;
+    if (String(input).startsWith(GEORGIA_ARCGIS_URL)) return responseFor(input);
+    const row = site();
+    row.images[0].videoUrl += '?token=private-token';
+    return Response.json(
+      { recordsFiltered: 2, data: [row, site(124)] },
+      {
+        headers: { 'Set-Cookie': 'session=private-cookie' },
+      },
+    );
+  };
+  assert.equal((await createGeorgiaLoader({ store, fetchImpl })()).length, 1);
+  const saved = await store.read(GEORGIA_CATALOG_KEY);
+  assert.doesNotMatch(saved, /private-token|private-cookie|set-cookie|token=/i);
+  assert.equal(JSON.parse(saved).cameras.length, 2);
+  process.env.CCTV_GEORGIA_MAX_SOURCES = '2';
+  const second = await createGeorgiaLoader({ store, fetchImpl })();
+  assert.equal(second.length, 2);
+  assert.equal(calls, 2);
+  assert.equal(second[0].websiteUrl, 'https://511ga.org/map#camera-456');
+});
+
+test('Georgia replaces retired cameras on refresh, preserves complete snapshots during outages and expires stale data', async (t) => {
+  setup(t);
+  let clock = 0;
+  let current = 123;
+  let failed = false;
+  const store = apiCacheStore({ now: () => clock });
+  const options = {
+    store,
+    now: () => clock,
+    fetchImpl: async (input) => {
+      if (String(input).startsWith(GEORGIA_ARCGIS_URL))
+        return responseFor(input);
+      if (failed) throw new Error('511 unavailable');
+      return Response.json({
+        recordsFiltered: current ? 1 : 0,
+        data: current ? [site(current)] : [],
+      });
+    },
+  };
+  const load = createGeorgiaLoader(options);
+  assert.equal((await load())[0].id, 'georgia-511-123');
+  current = 124;
+  clock += CCTV_SOURCE_CACHE_MS + 1;
+  assert.deepEqual(
+    (await load()).map((c) => c.id),
+    ['georgia-511-124'],
+  );
+  const saved = await store.read(GEORGIA_CATALOG_KEY);
+  failed = true;
+  clock += CCTV_SOURCE_CACHE_MS + 1;
+  assert.equal((await createGeorgiaLoader(options)())[0].id, 'georgia-511-124');
+  assert.equal(
+    await store.read(GEORGIA_CATALOG_KEY),
+    saved,
+    'failed refresh does not renew snapshot age',
+  );
+  clock += GEORGIA_CATALOG_STALE_MS;
+  assert.deepEqual(await load(), [], 'healthy GIS cannot resurrect cameras');
+  failed = false;
+  current = 0;
+  assert.deepEqual(await createGeorgiaLoader(options)(), []);
+  assert.deepEqual(
+    JSON.parse(await store.read(GEORGIA_CATALOG_KEY)).cameras,
+    [],
+    'an authoritative empty list replaces the old snapshot',
+  );
+});
+
+test('Georgia Redis refresh lease coalesces cold loaders and partial results do not replace a complete mapping', async (t) => {
+  setup(t);
+  let clock = 0,
+    calls = 0,
+    partial = false;
+  const store = apiCacheStore({ now: () => clock });
+  const options = {
+    store,
+    now: () => clock,
+    fetchImpl: async (input) => {
+      calls++;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      if (String(input).startsWith(GEORGIA_ARCGIS_URL))
+        return responseFor(input);
+      return Response.json({
+        recordsFiltered: partial ? 2 : 1,
+        data: [site(partial ? 124 : 123)],
+      });
+    },
+  };
+  const [first, second] = await Promise.all([
+    createGeorgiaLoader(options)(),
+    createGeorgiaLoader(options)(),
+  ]);
+  assert.deepEqual(first, second);
+  assert.equal(calls, 2);
+  const saved = await store.read(GEORGIA_CATALOG_KEY);
+  clock += CCTV_SOURCE_CACHE_MS + 1;
+  partial = true;
+  assert.deepEqual(await createGeorgiaLoader(options)(), first);
+  assert.equal(await store.read(GEORGIA_CATALOG_KEY), saved);
+});
+
+test('Georgia still loads public cameras when Redis is unavailable', async (t) => {
+  setup(t);
+  const store = {
+    read: async () => {
+      throw new Error('Redis unavailable');
+    },
+  };
+  assert.equal(
+    (
+      await createGeorgiaLoader({
+        store,
+        fetchImpl: async (input) => responseFor(input),
+      })()
+    ).length,
+    1,
+  );
+});
+
+test('Georgia refreshes in the background after first use and cancels the timer on close', async (t) => {
+  setup(t);
+  let clock = 0,
+    calls = 0,
+    tick,
+    cancelled;
+  const handle = { unref() {} };
+  const nativeTimeout = globalThis.setTimeout;
+  t.mock.method(globalThis, 'setTimeout', (fn, ms, ...args) => {
+    if (ms !== CCTV_SOURCE_CACHE_MS) return nativeTimeout(fn, ms, ...args);
+    tick = fn;
+    return handle;
+  });
+  t.mock.method(globalThis, 'clearTimeout', (value) => {
+    cancelled = value;
+  });
+  const load = createGeorgiaLoader({
+    background: true,
+    now: () => clock,
+    fetchImpl: async (input) => {
+      calls++;
+      return responseFor(input);
+    },
+  });
+  t.after(() => load.close());
+  await load();
+  assert.equal(calls, 2);
+  assert.equal(typeof tick, 'function');
+  clock += CCTV_SOURCE_CACHE_MS + 1;
+  tick();
+  await load();
+  assert.equal(calls, 4);
+  load.close();
+  assert.equal(cancelled, handle);
+  tick();
+  assert.deepEqual(await load(), []);
+  assert.equal(calls, 4);
 });
 
 test('Georgia pack joins the CCTV catalog and its kill switch prevents both upstream requests', async (t) => {
@@ -565,6 +737,10 @@ test('Georgia CCTV HTTP routes serve snapshots and leased HLS without exposing s
   const origin = `http://127.0.0.1:${server.address().port}`;
   const catalog = await (await nativeFetch(origin + '/sources')).json();
   assert.equal(catalog.sources[0].feedType, 'hls');
+  assert.equal(
+    catalog.sources[0].websiteUrl,
+    'https://511ga.org/map#camera-456',
+  );
   assert.equal('georgiaImageId' in catalog.sources[0], false);
   assert.equal('url' in catalog.sources[0], false);
   const frame = await nativeFetch(origin + '/frame/' + camera.id);

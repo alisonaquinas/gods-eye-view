@@ -197,6 +197,7 @@ export function createCatalog({ state: layerState, services, parts, source }) {
         pitchDeg,
         license: String(source.license || source.licenseNote || ''),
         credit: String(source.credit || ''),
+        websiteUrl: String(source.websiteUrl || ''),
         code: String(source.code || ''),
         // Shipped precompute (see server/providers/cctv/groundHeights.js).
         groundHeights:

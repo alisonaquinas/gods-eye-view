@@ -1,4 +1,9 @@
 import { cachedFetch } from '../common/api-cache.js';
+import {
+  createGeorgiaCatalogCache,
+  GEORGIA_CATALOG_STALE_MS,
+  GEORGIA_REFRESH_TIMEOUT_MS,
+} from './georgia-cache.js';
 import { readResponseJsonCapped } from '../common/http.js';
 import {
   CCTV_SOURCE_CACHE_MS,
@@ -12,7 +17,7 @@ import { directionToHeading } from '../../../src/data/directionText.js';
 const MAX_ROWS = 10000;
 const PAGE_SIZE = 100;
 const MAX_PAGE_BYTES = 4 * 1024 * 1024;
-const STALE_MS = 24 * 60 * 60 * 1000;
+const STALE_MS = GEORGIA_CATALOG_STALE_MS;
 const ANCHORS = [
   [33.749, -84.388], // Atlanta
   [32.081, -81.091], // Savannah
@@ -53,26 +58,15 @@ function siteCoordinates(row) {
 }
 
 /** Accept only the published GDOT transports; never proxy arbitrary catalog URLs. */
-export function georgiaStreamUrl(
-  value,
-  { legacy = false, signed = false } = {},
-) {
+export function georgiaStreamUrl(value, { signed = false } = {}) {
   try {
     const url = new URL(value);
     const current = /^sfs-msc-pub-lq-\d{2}\.navigator\.dot\.ga\.gov$/.test(
       url.hostname,
     );
-    const old = legacy && /^vss\d+live\.dot\.ga\.gov$/.test(url.hostname);
-    if (
-      (!current && !old) ||
-      url.username ||
-      url.password ||
-      url.port ||
-      url.hash
-    )
+    if (!current || url.username || url.password || url.port || url.hash)
       return '';
     if (current && url.protocol !== 'https:') return '';
-    if (old && !['http:', 'https:'].includes(url.protocol)) return '';
     if (
       !/^\/(?:rtplive|lo)\/[A-Za-z0-9_.-]{1,100}\/playlist\.m3u8$/.test(
         url.pathname,
@@ -89,24 +83,6 @@ export function georgiaStreamUrl(
   }
 }
 
-function legacySnapshot(value) {
-  try {
-    const url = new URL(value);
-    return ['http:', 'https:'].includes(url.protocol) &&
-      url.hostname === 'navigator-c2c.dot.ga.gov' &&
-      !url.port &&
-      !url.username &&
-      !url.password &&
-      !url.search &&
-      !url.hash &&
-      /^\/snapshots\/[A-Za-z0-9_-]{1,100}\.jpg$/.test(url.pathname)
-      ? url.href
-      : '';
-  } catch {
-    return '';
-  }
-}
-
 function source({
   id,
   name,
@@ -117,6 +93,7 @@ function source({
   url,
   snapshotUrl,
   imageId,
+  siteId,
   enriched,
 }) {
   // Road travel direction is only a pose prior, not the current PTZ camera bearing.
@@ -142,7 +119,8 @@ function source({
     feedType: url ? 'hls' : 'image',
     url: url || snapshotUrl,
     snapshotUrl,
-    sourceKind: imageId ? 'georgia-511' : 'georgia-arcgis',
+    sourceKind: 'georgia-511',
+    websiteUrl: validId(siteId) ? `https://511ga.org/map#camera-${siteId}` : '',
     georgiaImageId: url ? imageId || '' : '',
     credit: enriched
       ? 'GDOT / 511GA; location inventory: GEMA-SOC'
@@ -151,81 +129,58 @@ function source({
   };
 }
 
-/** 511 defines current availability; the older ArcGIS inventory enriches matches.
- * Legacy-only cameras are used only when the current catalog cannot be loaded. */
+/** Only published 511 cameras become sources. ArcGIS supplies geometry only. */
 export function mergeGeorgiaCameras(features, sites) {
   const inventory = new Map();
   for (const feature of features || []) {
     const a = feature?.attributes;
     const key = cameraName(a?.name);
     const coords = coordinates(feature?.geometry?.y, feature?.geometry?.x);
-    if (key && coords) inventory.set(key, { a, coords });
+    if (key && coords) inventory.set(key, { coords });
   }
   const cameras = new Map();
-  if (sites !== null) {
-    for (const row of sites || []) {
-      if (!row || row.visible === false || !Array.isArray(row.images)) continue;
-      const key = cameraName(row.jsonData?.name);
-      const match = inventory.get(key);
-      const current = siteCoordinates(row);
-      // A reused name far from its old location must not borrow old metadata.
-      const matched =
-        match &&
-        (!current ||
-          Math.hypot(
-            current.lat - match.coords.lat,
-            current.lon - match.coords.lon,
-          ) < 0.003)
-          ? match
-          : null;
-      const coords = current || matched?.coords;
-      if (!coords) continue;
-      for (const image of row.images.slice(0, 16)) {
-        if (!validId(image?.id) || image.disabled || image.blocked) continue;
-        const imageId = String(image.id);
-        const id = `georgia-511-${imageId}`;
-        const stream = image.videoDisabled
-          ? ''
-          : georgiaStreamUrl(image.videoUrl);
-        cameras.set(
-          id,
-          source({
-            id,
-            name:
-              label(image.description) ||
-              label(row.location) ||
-              key ||
-              `GDOT ${imageId}`,
-            code: key || `GA ${imageId}`,
-            coords,
-            county: label(row.county) || label(matched?.a.county),
-            direction: label(row.direction) || label(matched?.a.dir),
-            url: stream,
-            snapshotUrl: `https://511ga.org/map/Cctv/${imageId}`,
-            imageId,
-            enriched: Boolean(matched),
-          }),
-        );
-      }
-    }
-  } else {
-    for (const [key, { a, coords }] of inventory) {
-      const snapshotUrl = legacySnapshot(a.url);
-      const url = georgiaStreamUrl(a.HLS, { legacy: true });
-      if (!url && !snapshotUrl) continue;
-      const id = `georgia-gdot-${key.toLowerCase()}`;
+  for (const row of sites || []) {
+    if (!row || row.visible === false || !Array.isArray(row.images)) continue;
+    const key = cameraName(row.jsonData?.name);
+    const match = inventory.get(key);
+    const current = siteCoordinates(row);
+    // A reused name far from its old location must not borrow old geometry.
+    const matched =
+      match &&
+      (!current ||
+        Math.hypot(
+          current.lat - match.coords.lat,
+          current.lon - match.coords.lon,
+        ) < 0.003)
+        ? match
+        : null;
+    const coords = current || matched?.coords;
+    if (!coords) continue;
+    for (const image of row.images.slice(0, 16)) {
+      if (!validId(image?.id) || image.disabled || image.blocked) continue;
+      const imageId = String(image.id);
+      const id = `georgia-511-${imageId}`;
+      const stream = image.videoDisabled
+        ? ''
+        : georgiaStreamUrl(image.videoUrl);
       cameras.set(
         id,
         source({
           id,
-          name: label(a.location_description) || key,
-          code: key,
+          name:
+            label(image.description) ||
+            label(row.location) ||
+            key ||
+            `GDOT ${imageId}`,
+          code: key || `GA ${imageId}`,
           coords,
-          county: label(a.county),
-          direction: label(a.dir),
-          url,
-          snapshotUrl,
-          enriched: true,
+          county: label(row.county),
+          direction: label(row.direction),
+          url: stream,
+          snapshotUrl: `https://511ga.org/map/Cctv/${imageId}`,
+          imageId,
+          siteId: row.id ?? row.DT_RowId,
+          enriched: !current && Boolean(matched),
         }),
       );
     }
@@ -251,13 +206,21 @@ export function georgia511PageUrl(start) {
 
 /** Independent bounded catalog, retaining each successful page during outages. */
 export function createGeorgiaLoader({
-  fetchImpl = cachedFetch,
+  fetchImpl = (input, init) =>
+    String(input).startsWith(GEORGIA_ARCGIS_URL)
+      ? cachedFetch(input, init)
+      : fetch(input, init),
   now = Date.now,
+  store,
+  background = false,
 } = {}) {
   const pages = new Map();
   let lastRun = -Infinity;
   let result = [];
   let inflight;
+  let timer;
+  let controller;
+  let stopped = false;
   async function json(key, url, signal, maxRows, rowsField) {
     try {
       signal.throwIfAborted();
@@ -282,10 +245,11 @@ export function createGeorgiaLoader({
       )
         throw new Error('Invalid catalog page');
       pages.set(key, { payload, at: now() });
-      return payload;
+      return { payload, fresh: true };
     } catch {
       const stale = pages.get(key);
-      if (stale && now() - stale.at < STALE_MS) return stale.payload;
+      if (stale && now() - stale.at < STALE_MS)
+        return { payload: stale.payload, fresh: false };
       pages.delete(key);
       throw new Error('Georgia catalog page unavailable');
     }
@@ -297,8 +261,7 @@ export function createGeorgiaLoader({
       url.search = new URLSearchParams({
         f: 'json',
         where: '1=1',
-        outFields:
-          'ObjectId,name,cctv_id,county,location_description,dir,url,HLS',
+        outFields: 'ObjectId,name',
         outSR: '4326',
         orderByFields: 'ObjectId',
         resultOffset: String(offset),
@@ -307,7 +270,7 @@ export function createGeorgiaLoader({
         cacheHint: 'true',
       }).toString();
       try {
-        const page = await json(
+        const { payload: page } = await json(
           `arcgis-${offset}`,
           url.href,
           signal,
@@ -323,7 +286,7 @@ export function createGeorgiaLoader({
     return features;
   }
   async function current(signal) {
-    const first = await json(
+    const { payload: first, fresh } = await json(
       '511-0',
       georgia511PageUrl(0),
       signal,
@@ -336,6 +299,7 @@ export function createGeorgiaLoader({
     const all = [first.data];
     let next = PAGE_SIZE;
     let missing = 0;
+    let complete = fresh && first.data.length === Math.min(total, PAGE_SIZE);
     await Promise.all(
       Array.from({ length: 4 }, async () => {
         // After the deadline, json() returns only retained pages. Visit them
@@ -344,7 +308,7 @@ export function createGeorgiaLoader({
           const offset = next;
           next += PAGE_SIZE;
           try {
-            const page = await json(
+            const { payload: page, fresh: pageFresh } = await json(
               `511-${offset}`,
               georgia511PageUrl(offset),
               signal,
@@ -352,6 +316,11 @@ export function createGeorgiaLoader({
               'data',
             );
             all[offset / PAGE_SIZE] = page.data;
+            if (
+              !pageFresh ||
+              page.data.length !== Math.min(PAGE_SIZE, total - offset)
+            )
+              complete = false;
           } catch {
             missing++;
           }
@@ -362,18 +331,30 @@ export function createGeorgiaLoader({
       console.warn(
         '[CCTV] Georgia: some 511 catalog pages unavailable; retaining available cameras',
       );
-    return all.flat();
+    return { sites: all.flat(), complete: complete && !missing };
   }
   async function refresh() {
-    const signal = AbortSignal.timeout(20000);
+    controller = new AbortController();
+    const signal = AbortSignal.any([
+      controller.signal,
+      AbortSignal.timeout(GEORGIA_REFRESH_TIMEOUT_MS),
+    ]);
     const [arc, live] = await Promise.allSettled([
       arcgis(signal),
       current(signal),
     ]);
     const cameras = mergeGeorgiaCameras(
       arc.status === 'fulfilled' ? arc.value : [],
-      live.status === 'fulfilled' ? live.value : null,
+      live.status === 'fulfilled' ? live.value.sites : [],
     );
+    return {
+      cameras,
+      complete: live.status === 'fulfilled' && live.value.complete,
+    };
+  }
+  const loadCached = createGeorgiaCatalogCache({ refresh, now, store });
+  async function update() {
+    const cameras = await loadCached();
     const rawCap = Number(
       process.env.CCTV_GEORGIA_MAX_SOURCES || DEFAULT_GEORGIA_MAX_SOURCES,
     );
@@ -387,14 +368,33 @@ export function createGeorgiaLoader({
     );
     return result;
   }
-  return function loadGeorgiaSources() {
+  function loadGeorgiaSources() {
+    if (stopped) return Promise.resolve([]);
     if (now() - lastRun < CCTV_SOURCE_CACHE_MS) return Promise.resolve(result);
     if (!inflight)
-      inflight = refresh().finally(() => {
+      inflight = update().finally(() => {
         inflight = null;
+        if (background && !stopped) {
+          clearTimeout(timer);
+          timer = setTimeout(function tick() {
+            if (process.env.CCTV_GEORGIA_ENABLED !== '0')
+              void loadGeorgiaSources().catch(() => {});
+            else {
+              timer = setTimeout(tick, CCTV_SOURCE_CACHE_MS);
+              timer.unref?.();
+            }
+          }, CCTV_SOURCE_CACHE_MS);
+          timer.unref?.();
+        }
       });
     return inflight;
+  }
+  loadGeorgiaSources.close = () => {
+    stopped = true;
+    clearTimeout(timer);
+    controller?.abort();
   };
+  return loadGeorgiaSources;
 }
 
 /** Public 511 playback-link flow, called only by an active HLS session.

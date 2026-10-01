@@ -102,6 +102,7 @@ export function createPresentation({
       sourceMessage: health?.message || '',
       sourceLabel: health?.label || camera.provider || '',
       credit: camera.credit || '',
+      websiteUrl: camera.websiteUrl || '',
       calibration: {
         ...parts.calibration.normalizeCalibration(camera.calibration),
       },
