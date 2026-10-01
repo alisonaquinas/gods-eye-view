@@ -443,15 +443,17 @@ export class PanelChrome {
       typeof window !== 'undefined' &&
       window.matchMedia?.('(max-width: 720px)').matches
     ) {
-      // The mobile rail scrolls; selecting a camera must reveal its header
-      // even when the Display controls above it were left expanded.
-      this._lifetime.frame(() => {
-        if (!panelEl.classList.contains('collapsed'))
-          panelEl.querySelector('.panel-header')?.scrollIntoView({
-            block: 'nearest',
-            inline: 'nearest',
-          });
-      });
+      // Wait for the queued rail layout to restore and size the panels above
+      // CCTV before scrolling its header into the mobile viewport.
+      this._lifetime.frame(() =>
+        this._lifetime.frame(() => {
+          if (!panelEl.classList.contains('collapsed'))
+            panelEl.querySelector('.panel-header')?.scrollIntoView({
+              block: 'nearest',
+              inline: 'nearest',
+            });
+        }),
+      );
     }
     const priorLeftOwner = this._panelLayout._leftStackPreferredPanelId;
     const priorRightOwner = this._panelLayout._rightStackPreferredPanelId;

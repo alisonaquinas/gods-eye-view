@@ -54,7 +54,10 @@ test('explicit CCTV selection scrolls its header into a narrow rail, including a
   try {
     f.owner.setPanelCollapsed('cctv-panel', false, { explicit: true });
     frames.splice(0).forEach(callback => callback());
+    assert.equal(scrolled.length, 0, 'wait for queued rail layout before measuring the header');
+    frames.splice(0).forEach(callback => callback());
     f.owner.setPanelCollapsed('cctv-panel', false, { explicit: true });
+    frames.splice(0).forEach(callback => callback());
     frames.splice(0).forEach(callback => callback());
     assert.equal(scrolled.length, 2);
     assert.deepEqual(scrolled[0], { block: 'nearest', inline: 'nearest' });
