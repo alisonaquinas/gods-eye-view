@@ -61,7 +61,7 @@ export function createSelection({
    * @returns {'activated'|'unchanged'|'not-found'} Discriminated activation result.
    */
 
-  function setActiveCamera(cameraId) {
+  function setActiveCamera(cameraId, { explicitSelection = false } = {}) {
     if (!cameraId || !layerState._recordById.has(cameraId))
       return CCTV_ACTIVATION_RESULT.NOT_FOUND;
     const record = layerState._recordById.get(cameraId);
@@ -79,6 +79,8 @@ export function createSelection({
         record,
       )
     ) {
+      if (explicitSelection)
+        parts.presentation.notifyListeners({ explicitSelection: true });
       return CCTV_ACTIVATION_RESULT.UNCHANGED;
     }
     layerState._activeCameraId = cameraId;
@@ -146,7 +148,7 @@ export function createSelection({
     parts.cards.refreshAmbientCards();
     // ADJUST mode follows the active camera.
     layerState._gizmo?.refresh();
-    parts.presentation.notifyListeners();
+    parts.presentation.notifyListeners({ explicitSelection });
     return CCTV_ACTIVATION_RESULT.ACTIVATED;
   }
 

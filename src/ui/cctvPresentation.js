@@ -21,7 +21,9 @@ export function _renderCctvState(state) {
   ) {
     this._calibrationEdit?.(false);
   }
-  this._cctvState = state || null;
+  // A visibility observer can replay the last state after a manual collapse.
+  // Consume the selection intent once so that replay cannot reopen the panel.
+  this._cctvState = state ? { ...state, explicitSelection: false } : null;
   const cameras = state?.cameras || [];
   const enabled = !!state?.enabled && !!this.actions.isEnabled();
   const activeId = state?.activeCameraId || '';
@@ -36,7 +38,9 @@ export function _renderCctvState(state) {
     else this._cctvWebsiteLink.removeAttribute('href');
   }
 
-  // Auto-expand the panel when the active camera CHANGES to a new non-null
+  // Explicit map clicks reveal even an already-selected camera, claiming rail
+  // priority so an open Display panel cannot immediately hide CCTV again.
+  // Otherwise, auto-expand when the active camera CHANGES to a new non-null
   // id while the layer is enabled. Covers click-on-globe, panel controls,
   // and voice (selectCamera/cycleCamera/focusNearest all notify through
   // this subscription). The last-seen guard keeps routine notifications
@@ -47,8 +51,9 @@ export function _renderCctvState(state) {
   const isFirstActivation = this._lastSeenCctvActiveId === null;
   if (
     effectiveActiveId &&
-    effectiveActiveId !== this._lastSeenCctvActiveId &&
-    (!state?.autoHop || isFirstActivation)
+    (state?.explicitSelection ||
+      (effectiveActiveId !== this._lastSeenCctvActiveId &&
+        (!state?.autoHop || isFirstActivation)))
   ) {
     this.actions.setPanelCollapsed('cctv-panel', false, {
       explicit: Boolean(state?.explicitSelection),

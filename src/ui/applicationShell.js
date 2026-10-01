@@ -927,6 +927,7 @@ export class StyleManager extends ShellFacade {
     if (this._disposed) return false;
     const cameraId = activate();
     if (!cameraId) return false;
+    this.setPanelCollapsed('cctv-panel', false, { explicit: true });
     return this._runExplicitNavigation('camera', () => focus(cameraId));
   }
 

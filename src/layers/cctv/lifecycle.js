@@ -277,9 +277,8 @@ export function createLifecycle({
           const picked = layerState._viewer.scene.pick(click.position);
           const cameraId = parts.selection.extractPickedCameraId(picked);
           if (cameraId) {
-            activateCctvCameraFromWorldClick(
-              cameraId,
-              parts.selection.setActiveCamera,
+            activateCctvCameraFromWorldClick(cameraId, (id) =>
+              parts.selection.setActiveCamera(id, { explicitSelection: true }),
             );
             return;
           }
@@ -300,9 +299,8 @@ export function createLifecycle({
             { sourceId: CCTV_OVERLAY_SOURCE_ID },
           )?.entryId;
           if (cardId && layerState._recordById.has(cardId)) {
-            activateCctvCameraFromWorldClick(
-              cardId,
-              parts.selection.setActiveCamera,
+            activateCctvCameraFromWorldClick(cardId, (id) =>
+              parts.selection.setActiveCamera(id, { explicitSelection: true }),
             );
             return;
           }

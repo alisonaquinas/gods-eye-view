@@ -187,8 +187,10 @@ export function createPresentation({
 
   /** Dispatches the current UI state to all registered subscriber callbacks. */
 
-  function notifyListeners() {
-    const payload = uiState();
+  function notifyListeners({ explicitSelection = false } = {}) {
+    // Selection intent belongs to this notification, not persistent state:
+    // ordinary frame updates and auto-hop must not keep reopening the panel.
+    const payload = { ...uiState(), explicitSelection };
     for (const callback of layerState._listeners) {
       try {
         callback(payload);

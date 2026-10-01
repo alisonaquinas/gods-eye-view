@@ -63,6 +63,38 @@ test('selected Georgia camera links follow selection and disappear when unavaila
   assert.equal(controls._cctvWebsiteLink.hidden, true);
   assert.equal(controls._cctvWebsiteLink.href, undefined);
 });
+
+test('explicit camera selection reopens the panel with rail priority, including reselect and auto-hop mode', (t) => {
+  const { controls } = fixture(t);
+  const openings = [];
+  controls.actions.setPanelCollapsed = (...args) => openings.push(args);
+  const state = {
+    enabled: true,
+    activeCameraId: 'ga',
+    activeCamera: { id: 'ga' },
+  };
+  controls._renderCctvState(state);
+  openings.length = 0;
+  controls._renderCctvState({
+    ...state,
+    autoHop: true,
+    explicitSelection: true,
+  });
+  assert.deepEqual(openings, [['cctv-panel', false, { explicit: true }]]);
+  // The panel's MutationObserver replays this state after a user closes it.
+  controls._renderCctvState(controls.getState());
+  assert.equal(openings.length, 1, 'the explicit intent is consumed once');
+  controls._renderCctvState({
+    ...state,
+    activeCameraId: 'next',
+    autoHop: true,
+  });
+  assert.equal(
+    openings.length,
+    1,
+    'automatic hops do not claim panel priority',
+  );
+});
 function fixture(t) {
   const prior = globalThis.Image;
   const requests = [];

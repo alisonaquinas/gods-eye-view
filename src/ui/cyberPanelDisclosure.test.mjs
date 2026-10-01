@@ -41,6 +41,32 @@ function fixture(theme = 'cyber') {
   };
 }
 
+test('explicit CCTV selection scrolls its header into a narrow rail, including an already-open panel', () => {
+  const f = fixture('tactical');
+  const priorDocument = globalThis.document;
+  const priorWindow = globalThis.window;
+  const frames = [], scrolled = [];
+  globalThis.document = f.doc;
+  globalThis.window = { matchMedia: () => ({ matches: true }) };
+  f.owner._lifetime.frame = callback => frames.push(callback);
+  f.owner._updateCommandDockTrayStack = () => {};
+  f.cctv.querySelector = () => ({ scrollIntoView: options => scrolled.push(options) });
+  try {
+    f.owner.setPanelCollapsed('cctv-panel', false, { explicit: true });
+    frames.splice(0).forEach(callback => callback());
+    f.owner.setPanelCollapsed('cctv-panel', false, { explicit: true });
+    frames.splice(0).forEach(callback => callback());
+    assert.equal(scrolled.length, 2);
+    assert.deepEqual(scrolled[0], { block: 'nearest', inline: 'nearest' });
+    f.owner.setPanelCollapsed('cctv-panel', false);
+    frames.splice(0).forEach(callback => callback());
+    assert.equal(scrolled.length, 2, 'automatic updates do not move the rail');
+  } finally {
+    globalThis.document = priorDocument;
+    globalThis.window = priorWindow;
+  }
+});
+
 test('explicit Cyber opening collapses peers and claims their restoration lanes', () => {
   const f = fixture(), prior = globalThis.document;
   globalThis.document = f.doc;
