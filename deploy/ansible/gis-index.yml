@@ -6,12 +6,15 @@
     gev_source: /opt/gods-eye-view
     gev_account: gods-eye-view
     gev_node: /opt/node-v24.14.0-linux-x64
-    gev_branch: codex/gis-address-index
+    gev_branch: codex/gis-name-embeddings
     gev_gis_interval_ms: 10000
     gev_gis_hourly_limit: 240
     gev_gis_page_size: 1000
     gev_gis_schema: public
     gev_gis_pilot: true
+    gev_embeddings_interval_ms: 2000
+    gev_embeddings_hourly_limit: 600
+    gev_embeddings_batch_size: 32
   tasks:
     - name: Require explicit release and inspected baseline
       ansible.builtin.assert:
@@ -20,6 +23,11 @@
           - gev_expected is defined and gev_expected is match('^[a-f0-9]{40}$')
           - gev_gis_interval_ms | int >= 10000
           - gev_gis_hourly_limit | int <= 240
+          - gev_embeddings_interval_ms | int >= 1000
+          - gev_embeddings_hourly_limit | int >= 1
+          - gev_embeddings_hourly_limit | int <= 1800
+          - gev_embeddings_batch_size | int >= 1
+          - gev_embeddings_batch_size | int <= 32
           - gev_gis_schema is match('^[a-z][a-z0-9_]{0,62}$')
     - name: Read active revision
       ansible.builtin.command: git rev-parse HEAD
@@ -67,6 +75,15 @@
       become_user: '{{ gev_account }}'
       vars: { ansible_become: true }
       changed_when: false
+    - name: Check whether an embedding worker exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/gev-gis-embeddings.service
+      register: gev_old_embeddings
+    - name: Stop the embedding worker before replacing its code
+      ansible.builtin.systemd_service:
+        name: gev-gis-embeddings
+        state: stopped
+      when: gev_old_embeddings.stat.exists
     - name: Check whether a prior worker exists
       ansible.builtin.stat:
         path: /etc/systemd/system/gev-gis-index.service
@@ -110,6 +127,9 @@
               GEV_GIS_REQUESTS_PER_HOUR={{ gev_gis_hourly_limit }}
               GEV_GIS_PAGE_SIZE={{ gev_gis_page_size }}
               GEV_GIS_SCHEMA={{ gev_gis_schema }}
+              GEV_GIS_EMBEDDING_INTERVAL_MS={{ gev_embeddings_interval_ms }}
+              GEV_GIS_EMBEDDING_REQUESTS_PER_HOUR={{ gev_embeddings_hourly_limit }}
+              GEV_GIS_EMBEDDING_BATCH_SIZE={{ gev_embeddings_batch_size }}
         - name: Give GEV the same database schema selection
           ansible.builtin.copy:
             dest: /etc/systemd/system/gods-eye-view.service.d/gis-index.conf
@@ -123,6 +143,13 @@
           ansible.builtin.template:
             src: ../systemd/gev-gis-index.service.j2
             dest: /etc/systemd/system/gev-gis-index.service
+            owner: root
+            group: root
+            mode: '0644'
+        - name: Install standalone name embedding worker
+          ansible.builtin.template:
+            src: ../systemd/gev-gis-embeddings.service.j2
+            dest: /etc/systemd/system/gev-gis-embeddings.service
             owner: root
             group: root
             mode: '0644'
@@ -181,6 +208,32 @@
           ansible.builtin.pause:
             seconds: '{{ (gev_gis_interval_ms | int / 1000) | round(0, "ceil") | int + 2 }}'
           when: gev_gis_pilot | bool
+        - name: Verify a bounded embedding backfill batch as the service account
+          ansible.builtin.command:
+            argv:
+              - systemd-run
+              - --wait
+              - --collect
+              - --pipe
+              - '--unit=gev-embeddings-pilot-{{ gev_release[:12] }}'
+              - '--property=User={{ gev_account }}'
+              - '--property=WorkingDirectory={{ gev_source }}'
+              - --property=EnvironmentFile=/etc/gods-eye-view/storage.env
+              - '--setenv=GEV_GIS_SCHEMA={{ gev_gis_schema }}'
+              - '--setenv=GEV_GIS_EMBEDDING_INTERVAL_MS={{ gev_embeddings_interval_ms }}'
+              - '--setenv=GEV_GIS_EMBEDDING_REQUESTS_PER_HOUR={{ gev_embeddings_hourly_limit }}'
+              - '--setenv=GEV_GIS_EMBEDDING_BATCH_SIZE={{ gev_embeddings_batch_size }}'
+              - '{{ gev_node }}/bin/node'
+              - scripts/gis-embeddings.mjs
+              - once
+              - --max-ticks
+              - '1'
+        - name: Enable and start the independent embedding backfill
+          ansible.builtin.systemd_service:
+            name: gev-gis-embeddings
+            enabled: true
+            state: started
+            daemon_reload: true
         - name: Enable and start the long-running importer
           ansible.builtin.systemd_service:
             name: gev-gis-index
@@ -192,7 +245,7 @@
             url: http://127.0.0.1:4173/api/locations/index/status
             return_content: true
           register: gev_running
-          until: gev_running.status == 200 and gev_running.json.running and gev_running.json.sources | length == 6
+          until: gev_running.status == 200 and gev_running.json.running and gev_running.json.sources | length == 6 and gev_running.json.embeddings.running
           retries: 8
           delay: 5
         - name: Verify public status API
@@ -214,9 +267,14 @@
             msg:
               revision: '{{ gev_release }}'
               worker_running: '{{ gev_running.json.running }}'
+              embeddings_running: '{{ gev_running.json.embeddings.running }}'
               sources: '{{ gev_running.json.sources | length }}'
               initial_import: Running independently; inspect the Address index panel for progress.
       rescue:
+        - name: Stop and disable the failed embedding worker
+          ansible.builtin.systemd_service:
+            { name: gev-gis-embeddings, state: stopped, enabled: false }
+          failed_when: false
         - name: Stop and disable the failed worker
           ansible.builtin.systemd_service:
             { name: gev-gis-index, state: stopped, enabled: false }

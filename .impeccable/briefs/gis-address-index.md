@@ -28,3 +28,12 @@ Validation captures use real, bounded local pilot data, not the statewide import
 Desktop 1440×1000 and phone 390×844 are required. Wider product UI and the first-run
 onboarding experience are outside the change. Inspect the changed Address index
 section, not unrelated pre-existing decoration or controls.
+
+Extension: name embeddings and completion estimates (October 16, 2026).
+- Keep the existing disclosure and styling. Add Name embeddings with actual ready,
+  meaning, pronunciation, pending and unsupported counts; opening it is read-only.
+- Show an approximate area-based initial import percentage overall and per source,
+  including partial initial areas. Label the basis; this does not estimate time.
+- Embedding percentage covers names prepared so far; the denominator can grow.
+- Required captures: desktop.png/mobile.png for initial coverage, plus
+  embeddings-desktop.png/embeddings-mobile.png for the expanded embedding row.

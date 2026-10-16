@@ -1,4 +1,6 @@
 const number = (value) => Number(value || 0).toLocaleString();
+const percent = (value) =>
+  Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 1 });
 const date = (value) =>
   value
     ? new Date(value).toLocaleString(undefined, {
@@ -66,6 +68,19 @@ export function createGisIndexControls(
           'gis-index-counts',
         ),
       );
+      if (data.progress)
+        fragment.append(
+          element(
+            'p',
+            `Initial import: ~${percent(data.progress.percent)}% · ${number(data.progress.completed)} / ${number(data.progress.areas)} areas`,
+            'gis-index-counts',
+          ),
+          element(
+            'p',
+            'Area-based estimate includes the current area. Record counts vary by area.',
+            'gis-index-note',
+          ),
+        );
       if (data.settings?.cycleMs)
         fragment.append(
           element(
@@ -106,11 +121,13 @@ export function createGisIndexControls(
         details.append(summary);
         const label = element(
           'p',
-          `${number(source.completed)} / ${number(source.areas)} areas initially imported`,
+          `${source.progress ? `~${percent(source.progress.percent)}% · ` : ''}${number(source.completed)} / ${number(source.areas)} areas initially imported`,
         );
         const progress = element('progress');
         progress.max = Math.max(1, source.areas);
-        progress.value = source.completed;
+        progress.value = source.progress
+          ? (source.progress.percent / 100) * progress.max
+          : source.completed;
         progress.setAttribute(
           'aria-label',
           `${source.label}: ${label.textContent}`,
@@ -161,6 +178,78 @@ export function createGisIndexControls(
           link.rel = 'noopener noreferrer';
           details.append(link);
         }
+        fragment.append(details);
+      }
+      if (data.embeddings) {
+        const embeddings = data.embeddings;
+        const details = element('details', '', 'gis-index-source');
+        details.dataset.source = 'name-embeddings';
+        details.open = openSources.has('name-embeddings');
+        const summary = element('summary');
+        summary.append(
+          element('span', 'Name embeddings'),
+          element(
+            'span',
+            `${percent(embeddings.percent)}% · ${number(embeddings.complete)} / ${number(embeddings.names)} ready`,
+            'gis-index-source-count',
+          ),
+        );
+        details.append(summary);
+        const state = embeddings.paused
+          ? 'Paused'
+          : !embeddings.running
+            ? 'Worker not reporting'
+            : embeddings.error
+              ? 'Retry pending'
+              : embeddings.preparingNames
+                ? 'Preparing indexed names'
+                : embeddings.pending
+                  ? 'Backfill running'
+                  : 'Caught up with indexed names';
+        details.append(
+          element('p', state),
+          element(
+            'p',
+            `${number(embeddings.meaning)} meaning · ${number(embeddings.pronunciation)} pronunciation · ${number(embeddings.pending)} pending`,
+            'gis-index-note',
+          ),
+        );
+        if (embeddings.unavailable)
+          details.append(
+            element(
+              'p',
+              `${number(embeddings.unavailable)} ${embeddings.unavailable === 1 ? 'name needs' : 'names need'} operator review for unsupported inputs.`,
+              'gis-index-error',
+            ),
+          );
+        if (embeddings.error)
+          details.append(
+            element(
+              'p',
+              `${embeddings.error} Retry after ${date(embeddings.nextRequestAt)}.`,
+              'gis-index-error',
+            ),
+          );
+        if (embeddings.settings?.intervalMs)
+          details.append(
+            element(
+              'p',
+              `Up to ${number(embeddings.settings.batchSize)} names per request · ≥${number(embeddings.settings.intervalMs / 1000)}s apart · up to ${number(embeddings.settings.hourlyLimit)}/hour`,
+              'gis-index-note',
+            ),
+          );
+        details.append(
+          element(
+            'p',
+            'Percentage covers prepared names. Shared names are stored once; new indexed names join automatically.',
+            'gis-index-note',
+          ),
+          element(
+            'p',
+            `Last heartbeat: ${date(embeddings.heartbeatAt)}`,
+            'gis-index-note',
+          ),
+        );
         fragment.append(details);
       }
       fragment.append(element('p', data.coverage, 'gis-index-note'));

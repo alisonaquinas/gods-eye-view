@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
+import { initialProgress } from '../../server/providers/gis-index/progress.js';
 import { GisIndexStore } from '../../server/providers/gis-index/store.js';
 import { GisIndexWorker } from '../../server/providers/gis-index/worker.js';
 import { normalizeFeature } from '../../server/providers/gis-index/normalize.js';
@@ -613,3 +614,47 @@ test(
     }
   },
 );
+
+test('initial coverage percentage includes partial areas but excludes rolling refreshes', () => {
+  assert.deepEqual(initialProgress([]), {
+    areas: 0,
+    completed: 0,
+    percent: 0,
+    basis: 'areas',
+  });
+  const rows = [
+    {
+      areas: 4,
+      completed: 1,
+      active: [
+        { initial: true, scanned: 50, expected: 100 },
+        { initial: false, scanned: 100, expected: 100 },
+      ],
+    },
+  ];
+  assert.equal(initialProgress(rows).percent, 37.5);
+  assert.equal(
+    initialProgress([...rows, { areas: 6, completed: 2, active: [] }]).percent,
+    35,
+  );
+  assert.equal(
+    initialProgress([
+      {
+        areas: 4,
+        completed: 4,
+        active: [{ initial: false, scanned: 1, expected: 2 }],
+      },
+    ]).percent,
+    100,
+  );
+  assert.equal(
+    initialProgress([
+      {
+        areas: 4,
+        completed: 0,
+        active: [{ initial: true, scanned: 0, expected: 0 }],
+      },
+    ]).percent,
+    0,
+  );
+});

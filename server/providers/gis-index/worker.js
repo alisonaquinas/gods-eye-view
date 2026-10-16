@@ -54,7 +54,10 @@ export class GisIndexWorker {
   }
   async metadata(source) {
     const saved = await this.store.source(source.id);
-    if (saved.metadata && this.now() - Number(saved.checked_at) < 86_400_000)
+    if (
+      saved.metadata?.mappingVersion === 2 &&
+      this.now() - Number(saved.checked_at) < 86_400_000
+    )
       return saved.metadata;
     const metadata = await this.request(source);
     const geometryType =
@@ -92,6 +95,7 @@ export class GisIndexWorker {
         { permanent: true },
       );
     const value = {
+      mappingVersion: 2,
       idField,
       fields: selectedFields(metadata),
       pageSize: Math.min(

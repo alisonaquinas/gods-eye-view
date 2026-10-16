@@ -1,7 +1,10 @@
 import pg from 'pg';
 import { randomUUID } from 'node:crypto';
 import { schemaSql } from './schema.js';
+import { embeddingSchemaSql } from './embeddings/schema.js';
+import { embeddingStatus } from './embeddings/status.js';
 import { grid } from './catalog.js';
+import { initialProgress } from './progress.js';
 import { lookupIndex } from './lookup.js';
 
 const numberFields = [
@@ -28,9 +31,17 @@ const areaRow = (row) =>
   );
 
 export class GisIndexStore {
-  constructor(connectionString, { schema = 'public', now = Date.now } = {}) {
+  constructor(
+    connectionString,
+    { schema = 'public', now = Date.now, worker = 'index' } = {},
+  ) {
     if (!/^[a-z][a-z0-9_]{0,62}$/.test(schema))
       throw new Error('Invalid GIS database schema.');
+    if (!['index', 'embeddings'].includes(worker))
+      throw new Error('Invalid GIS worker type.');
+    this.controlTable =
+      worker === 'index' ? 'gev_gis_control' : 'gev_gis_embedding_control';
+    this.lockKey = `gev-gis-${worker}-worker`;
     this.schema = schema;
     this.now = now;
     this.pool = new pg.Pool({
@@ -53,6 +64,7 @@ export class GisIndexStore {
         if (this.schema !== 'public')
           await client.query(`CREATE SCHEMA IF NOT EXISTS ${this.schema}`);
         await client.query(schemaSql);
+        await client.query(embeddingSchemaSql);
       }).catch((error) => {
         this.ready = null;
         throw error;
@@ -121,7 +133,8 @@ export class GisIndexStore {
     let rows;
     try {
       ({ rows } = await client.query(
-        "SELECT pg_try_advisory_lock(hashtext('gev-gis-index-worker')) AS acquired",
+        'SELECT pg_try_advisory_lock(hashtext($1)) AS acquired',
+        [this.lockKey],
       ));
     } catch (error) {
       client.release(true);
@@ -129,14 +142,14 @@ export class GisIndexStore {
     }
     if (!rows[0].acquired) {
       client.release();
-      throw new Error('A GIS index worker already owns this database.');
+      throw new Error('A GIS worker of this type already owns this database.');
     }
     this.lockClient = client;
     client.on('error', () => {
       this.lockLost = true;
     });
     await this.pool.query(
-      'UPDATE gev_gis_control SET worker_id=$1,config=$2,heartbeat_at=$3 WHERE id=1',
+      `UPDATE ${this.controlTable} SET worker_id=$1,config=$2,heartbeat_at=$3 WHERE id=1`,
       [workerId, config, this.now()],
     );
   }
@@ -145,26 +158,29 @@ export class GisIndexStore {
     // This also detects a server-side terminated advisory-lock connection before any request.
     if (this.lockClient) await this.lockClient.query('SELECT 1');
     await this.pool.query(
-      'UPDATE gev_gis_control SET heartbeat_at=$1,phase=$2 WHERE id=1',
+      `UPDATE ${this.controlTable} SET heartbeat_at=$1,phase=$2 WHERE id=1`,
       [this.now(), phase],
     );
   }
   async paused() {
     return (
-      await this.pool.query('SELECT paused FROM gev_gis_control WHERE id=1')
+      await this.pool.query(
+        `SELECT paused FROM ${this.controlTable} WHERE id=1`,
+      )
     ).rows[0].paused;
   }
   async setPaused(value) {
     await this.initialize();
-    await this.pool.query('UPDATE gev_gis_control SET paused=$1 WHERE id=1', [
-      value,
-    ]);
+    await this.pool.query(
+      `UPDATE ${this.controlTable} SET paused=$1 WHERE id=1`,
+      [value],
+    );
   }
   async requestSlot(config, jitterMs = 0) {
     return this.transaction(async (client) => {
       const row = (
         await client.query(
-          'SELECT * FROM gev_gis_control WHERE id=1 FOR UPDATE',
+          `SELECT * FROM ${this.controlTable} WHERE id=1 FOR UPDATE`,
         )
       ).rows[0];
       const now = this.now();
@@ -181,7 +197,7 @@ export class GisIndexStore {
       );
       if (due > now) return due - now;
       await client.query(
-        'UPDATE gev_gis_control SET next_request_at=$1,window_start=$2,window_requests=$3,requests=requests+1 WHERE id=1',
+        `UPDATE ${this.controlTable} SET next_request_at=$1,window_start=$2,window_requests=$3,requests=requests+1 WHERE id=1`,
         [now + config.intervalMs + jitterMs, start, count + 1],
       );
       return 0;
@@ -307,14 +323,19 @@ export class GisIndexStore {
         [area.source_id, area.area_key],
       );
       await client.query(
-        `INSERT INTO gev_gis_features(source_id,object_id,area_key,kind,address,address_key,street,street_keys,cities,city_keys,region,county,postal_code,latitude,longitude,geometry,stable_id,source_updated_at,fetched_at)
+        `INSERT INTO gev_gis_features(source_id,object_id,area_key,kind,address,address_key,street,street_keys,cities,city_keys,region,county,postal_code,latitude,longitude,geometry,stable_id,source_updated_at,fetched_at,place_names)
         SELECT source_id,object_id,area_key,record->>'kind',record->>'address',record->>'addressKey',record->>'street',
         ARRAY(SELECT jsonb_array_elements_text(record->'streetKeys')),ARRAY(SELECT jsonb_array_elements_text(record->'cities')),ARRAY(SELECT jsonb_array_elements_text(record->'cityKeys')),
-        record->>'region',record->>'county',record->>'postalCode',(record->>'latitude')::float8,(record->>'longitude')::float8,record->'geometry',record->>'stableId',(record->>'sourceUpdatedAt')::bigint,$4
+        record->>'region',record->>'county',record->>'postalCode',(record->>'latitude')::float8,(record->>'longitude')::float8,record->'geometry',record->>'stableId',(record->>'sourceUpdatedAt')::bigint,$4,ARRAY(SELECT jsonb_array_elements_text(record->'placeNames'))
         FROM gev_gis_stage WHERE source_id=$1 AND area_key=$2 AND generation=$3
         ON CONFLICT(source_id,object_id) DO UPDATE SET area_key=excluded.area_key,kind=excluded.kind,address=excluded.address,address_key=excluded.address_key,street=excluded.street,street_keys=excluded.street_keys,
-        cities=excluded.cities,city_keys=excluded.city_keys,region=excluded.region,county=excluded.county,postal_code=excluded.postal_code,latitude=excluded.latitude,longitude=excluded.longitude,geometry=excluded.geometry,stable_id=excluded.stable_id,source_updated_at=excluded.source_updated_at,fetched_at=excluded.fetched_at`,
+        cities=excluded.cities,city_keys=excluded.city_keys,region=excluded.region,county=excluded.county,postal_code=excluded.postal_code,latitude=excluded.latitude,longitude=excluded.longitude,geometry=excluded.geometry,stable_id=excluded.stable_id,source_updated_at=excluded.source_updated_at,fetched_at=excluded.fetched_at,place_names=excluded.place_names,names_revision=0`,
         [area.source_id, area.area_key, area.generation, this.now()],
+      );
+      // Reset name links when a source feature moves from a neighboring area.
+      await client.query(
+        `DELETE FROM gev_gis_feature_names n USING gev_gis_stage s WHERE n.source_id=s.source_id AND n.object_id=s.object_id AND s.source_id=$1 AND s.area_key=$2`,
+        [area.source_id, area.area_key],
       );
       // A moved source feature can already exist in a neighboring area.
       await client.query(
@@ -392,12 +413,13 @@ export class GisIndexStore {
       count(*)::int AS areas,count(*) FILTER(WHERE a.finished_at IS NOT NULL)::int AS completed,
       sum(a.indexed_count)::float8 AS indexed,sum(a.last_rejected)::float8 AS rejected,
       min(a.finished_at)::float8 AS oldest_refresh_at,min(a.next_due)::float8 AS next_due,
-      jsonb_agg(jsonb_build_object('area',a.area_key,'expected',a.expected,'scanned',a.scanned,'accepted',a.accepted,'rejected',a.rejected,'reasons',a.rejection_reasons,'startedAt',a.started_at,'error',a.error)) FILTER(WHERE a.generation IS NOT NULL OR a.error IS NOT NULL) AS active
+      jsonb_agg(jsonb_build_object('area',a.area_key,'initial',a.finished_at IS NULL,'expected',a.expected,'scanned',a.scanned,'accepted',a.accepted,'rejected',a.rejected,'reasons',a.rejection_reasons,'startedAt',a.started_at,'error',a.error)) FILTER(WHERE a.generation IS NOT NULL OR a.error IS NOT NULL) AS active
       FROM gev_gis_sources s JOIN gev_gis_areas a ON a.source_id=s.id GROUP BY s.id ORDER BY (s.config->>'priority')::int,s.id`);
     const heartbeat =
       control.heartbeat_at === null ? null : Number(control.heartbeat_at);
     return {
       configured: true,
+      progress: initialProgress(rows),
       sampledAt: this.now(),
       paused: control.paused,
       running: heartbeat !== null && this.now() - heartbeat < 90_000,
@@ -407,6 +429,7 @@ export class GisIndexStore {
       requests: Number(control.requests),
       windowRequests: control.window_requests,
       settings: control.config,
+      embeddings: await embeddingStatus(this),
       coverage:
         'Includes published source records, not a guarantee of every real address. Source coverage and update dates vary. Unmatched locations can still use the existing geocoders.',
       sources: rows.map((row) => ({
@@ -416,6 +439,7 @@ export class GisIndexStore {
         url: row.config.url,
         areas: row.areas,
         completed: row.completed,
+        progress: initialProgress([row]),
         indexed: row.indexed,
         rejected: row.rejected,
         published:
@@ -444,10 +468,11 @@ export class GisIndexStore {
         try {
           if (!this.lockLost) {
             await this.lockClient.query(
-              'UPDATE gev_gis_control SET heartbeat_at=NULL,worker_id=NULL WHERE id=1',
+              `UPDATE ${this.controlTable} SET heartbeat_at=NULL,worker_id=NULL WHERE id=1`,
             );
             await this.lockClient.query(
-              "SELECT pg_advisory_unlock(hashtext('gev-gis-index-worker'))",
+              'SELECT pg_advisory_unlock(hashtext($1))',
+              [this.lockKey],
             );
           }
         } catch {

@@ -186,3 +186,15 @@ Street SW / White Oak Avenue SW intersection, and 500 Lang Road in Covington.
 These examples verify import/resolution behavior; they do not certify all source
 addresses. The service deployment repeats a smaller Oakland City test before
 starting the full importer.
+
+## Name embeddings
+
+The independent [name embedding worker](GIS-NAME-EMBEDDINGS.md) backfills stored
+street and place names and follows newly published GIS records. Its status is
+in the same Address index panel; its request budget and pause control are separate.
+
+The status API and panel report an approximate initial-import percentage overall
+and per source. It weights each grid area equally and includes the scanned fraction
+of active first imports. It is a coverage estimate, not a remaining-time estimate;
+dense and empty areas take different amounts of work. Later rolling refreshes do
+not increase initial coverage beyond 100%.

@@ -1070,5 +1070,14 @@
   "server/providers/gis-index/store.js",
   "server/providers/gis-index/lookup.js",
   "server/providers/gis-index/transport.js",
-  "server/providers/gis-index/worker.js"
+  "server/providers/gis-index/worker.js",
+  "scripts/gis-embeddings.mjs",
+  "src/tooling/gisEmbeddings.test.mjs",
+  "server/providers/gis-index/embeddings/names.js",
+  "server/providers/gis-index/embeddings/schema.js",
+  "server/providers/gis-index/embeddings/status.js",
+  "server/providers/gis-index/embeddings/store.js",
+  "server/providers/gis-index/embeddings/transport.js",
+  "server/providers/gis-index/embeddings/worker.js",
+  "server/providers/gis-index/progress.js"
 ]
