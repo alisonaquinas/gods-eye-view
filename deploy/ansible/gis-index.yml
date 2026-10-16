@@ -141,6 +141,10 @@
           until: gev_index_status.status == 200 and gev_index_status.json.configured
           retries: 5
           delay: 3
+        - name: Preserve request spacing before the isolated pilot
+          ansible.builtin.pause:
+            seconds: '{{ (gev_gis_interval_ms | int / 1000) | round(0, "ceil") | int + 2 }}'
+          when: gev_gis_pilot | bool
         - name: Test a bounded Oakland City sample using the service account and production database
           ansible.builtin.command:
             argv:
@@ -173,6 +177,10 @@
             timeout: 30
           register: gev_location
           failed_when: gev_location.status != 200 or gev_location.json.status != 'RESOLVED' or gev_location.json.location.precision != 'STREET'
+        - name: Preserve request spacing between the pilot and the full worker
+          ansible.builtin.pause:
+            seconds: '{{ (gev_gis_interval_ms | int / 1000) | round(0, "ceil") | int + 2 }}'
+          when: gev_gis_pilot | bool
         - name: Enable and start the long-running importer
           ansible.builtin.systemd_service:
             name: gev-gis-index
