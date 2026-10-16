@@ -39,7 +39,8 @@ test('catalogs construct distinct layers and classification from their supplied 
     signal: b.signal,
     surface: fixtureSurface(b.signal),
   });
-  assert.equal(first.layers.length, 42);
+  assert.equal(first.layers.length, 43);
+  assert.ok(first.get('p25-events'));
   assert.ok(first.get('deflock-cameras'));
   for (const id of ['eff-alpr', 'eff-drones', 'eff-video-analytics'])
     assert.ok(first.get(id), `${id} is registered`);

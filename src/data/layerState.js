@@ -298,6 +298,15 @@ function imageryPinOption(key, token) {
 }
 
 const OPTION_GROUPS = Object.freeze({
+  'p25-events': Object.freeze([
+    enumOption('windowMode', 'm', 'rolling', ['rolling', 'custom'], {
+      rolling: 'r',
+      custom: 'c',
+    }),
+    integerOption('hours', 'h', 6),
+    integerOption('from', 'f', null),
+    integerOption('until', 'u', null),
+  ]),
   traffic: Object.freeze([
     enumOption('roadMode', 'r', null, ['tomtom', 'osm', 'hybrid'], {
       tomtom: 't',
@@ -633,6 +642,12 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     id: 'military-installations',
     token: 'i',
     disposition: 'enabled-only',
+  }),
+  Object.freeze({
+    id: 'p25-events',
+    token: '05',
+    disposition: 'enabled+options',
+    optionOwner: 'p25-events',
   }),
   Object.freeze({
     id: 'radio',

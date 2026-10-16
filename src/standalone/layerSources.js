@@ -17,6 +17,7 @@ import { createWeatherSource } from '../layers/weather/source.js';
 import { createCycloneSource } from '../layers/cyclones/source.js';
 import { createWindSource } from '../layers/wind/source.js';
 import { createFirmsSource } from '../layers/firms/source.js';
+import { createP25EventSource } from '../layers/p25Events/source.js';
 import { createReferenceSources } from '../sources/reference.js';
 export { createReferenceSources as createStandaloneReferenceSources } from '../sources/reference.js';
 
@@ -40,6 +41,7 @@ export function createStandaloneLayerSources() {
     launches: createLaunchSource(),
     alpr: createAlprTileSource(),
     firms: createFirmsSource(),
+    p25: createP25EventSource(),
     wind: createWindSource(),
     weather: createWeatherSource(),
     cyclones: createCycloneSource(),

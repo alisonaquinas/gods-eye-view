@@ -425,6 +425,7 @@
   "layer-panel": {
     "exports": ["./ui/layers", "./ui/layers/feedback"],
     "modules": [
+      "src/ui/p25EventsControls.js",
       "src/ui/layers.js",
       "src/ui/layerPanel.js",
       "src/ui/weatherPanel.js",
@@ -536,6 +537,7 @@
   "ui-shell": {
     "exports": ["./ui/shell"],
     "modules": [
+      "src/ui/p25EventsControls.js",
       "src/hudLayouts.js",
       "src/hudLayoutPolicy.js",
       "src/cyberSonar.js",
@@ -1354,6 +1356,11 @@
       "./standalone/catalog"
     ],
     "modules": [
+      "src/ui/p25EventsControls.js",
+      "src/app/layers/p25Events.js",
+      "src/layers/p25Events/index.js",
+      "src/layers/p25Events/model.js",
+      "src/layers/p25Events/source.js",
       "src/cyberSonarScene.js",
       "src/cyberSonar.js",
       "src/hudLayouts.js",
@@ -2101,6 +2108,9 @@
   "application-layer-construction": {
     "exports": ["./application/layers"],
     "modules": [
+      "src/app/layers/p25Events.js",
+      "src/layers/p25Events/index.js",
+      "src/layers/p25Events/model.js",
       "src/cyberSonar.js",
       "src/data/bhoteKoshiEvent.js",
       "src/ui/imagerySplit.js",

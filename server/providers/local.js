@@ -28,6 +28,7 @@ import { cycloneProxy } from './cyclones.js';
 import { windProxy } from './wind.js';
 import { effAtlasProxy } from './effAtlas.js';
 import { deflockProxy } from './deflock.js';
+import { p25EventsProxy } from './p25-events.js';
 
 /** Construct the local provider plugins in their established order. */
 function localProviderPlugins() {
@@ -61,6 +62,7 @@ function localProviderPlugins() {
     firePerimetersProxy(),
     effAtlasProxy(),
     deflockProxy(),
+    p25EventsProxy(),
     keySetupEndpoint(),
   ];
 }

@@ -5,6 +5,7 @@ export { layerFeedState } from '../data/feedState.js';
 import { GUIDANCE_STATUSES } from '../loadingFeedback.js';
 import { keySetupRequirement } from '../keySetupCore.mjs';
 import { createWeatherPanel } from './weatherPanel.js';
+import { createP25EventsControls } from './p25EventsControls.js';
 import { EFF_ATLAS_TECHNOLOGIES } from '../data/effAtlas.js';
 const FEED_STATE_LABELS = Object.freeze({
   nominal: 'ON',
@@ -52,7 +53,13 @@ const PANEL_GROUPS = [
   },
   {
     label: 'Events',
-    ids: ['rocket-launches', 'earthquakes', 'local-firms', 'fire-perimeters'],
+    ids: [
+      'p25-events',
+      'rocket-launches',
+      'earthquakes',
+      'local-firms',
+      'fire-perimeters',
+    ],
   },
   {
     label: 'Weather',
@@ -411,6 +418,15 @@ export class LayerPanel {
   _syncRowControls(container, layer, listContainer = null) {
     if (!container) return;
     const controls = layer.enabled ? this._rowControlsFor(layer.id) : null;
+    if (layer.id === 'p25-events') {
+      if (!container._p25Controls)
+        container._p25Controls = createP25EventsControls(container, (params) =>
+          this.setLayerParams(layer.id, params, { origin: 'user' }),
+        );
+      container.hidden = !controls?.p25;
+      container._p25Controls.update(controls?.p25);
+      return;
+    }
     if (controls?.readout) {
       container.remove();
       listContainer?.remove();

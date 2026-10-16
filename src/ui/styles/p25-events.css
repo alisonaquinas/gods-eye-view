@@ -1,0 +1,125 @@
+.p25-controls {
+  width: 100%;
+  min-width: 0;
+  color: var(--text-primary, #e8edf5);
+  font: 12px/1.5 var(--font-sans, sans-serif);
+}
+[data-layer-id='p25-events'] .data-toggle-controls {
+  padding-left: 0;
+}
+.p25-controls .data-toggle-chip {
+  min-height: 32px;
+  padding: 5px 8px;
+  color: var(--text-primary, #e8edf5);
+  font: inherit;
+  letter-spacing: normal;
+}
+.p25-controls .data-toggle-chip:hover {
+  color: var(--accent, #5edbd5);
+}
+.p25-controls .data-toggle-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.p25-note {
+  display: block;
+  margin-top: 4px;
+}
+.p25-controls [hidden] {
+  display: none;
+}
+.p25-window label {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+}
+.p25-window input,
+.p25-window select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px;
+  border: 1px solid var(--glass-border, #596676);
+  border-radius: 4px;
+  background: var(--bg-panel, #101820);
+  color: inherit;
+  color-scheme: dark;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.p25-custom .data-toggle-chip {
+  margin-top: 8px;
+}
+.p25-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 8px;
+}
+.p25-status,
+.p25-coverage,
+.p25-error {
+  margin: 6px 0;
+  white-space: pre-line;
+}
+.p25-note,
+.p25-coverage,
+.p25-event-time,
+.p25-provenance {
+  color: #c0cbd8;
+}
+.p25-error {
+  color: #ffb4a8;
+}
+.p25-events {
+  margin-top: 12px;
+}
+.p25-events summary {
+  cursor: pointer;
+  padding: 6px 0;
+}
+.p25-event-list {
+  max-height: 230px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.p25-event-list button {
+  display: block;
+  width: 100%;
+  padding: 9px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--glass-border, #596676);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  font: inherit;
+  cursor: pointer;
+}
+.p25-event-list button:hover,
+.p25-event-list button[aria-pressed='true'] {
+  background: var(--accent-dim, #183a43);
+}
+.p25-selected {
+  margin: 16px 0;
+  overflow-wrap: anywhere;
+}
+.p25-selected h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.p25-report {
+  white-space: pre-wrap;
+}
+.p25-source {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--accent, #5edbd5);
+  text-underline-offset: 3px;
+}
+.p25-controls :focus-visible {
+  outline: 2px solid var(--accent, #5edbd5);
+  outline-offset: 2px;
+}

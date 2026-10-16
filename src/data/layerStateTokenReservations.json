@@ -28,6 +28,7 @@
   ["military", "m"],
   ["military-awareness", "g"],
   ["military-installations", "i"],
+  ["p25-events", "05"],
   ["radio", "r"],
   ["recent-imagery", "1"],
   ["rocket-launches", "x"],

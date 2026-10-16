@@ -197,10 +197,33 @@ function encode(state) {
   return params.toString();
 }
 
+test('P25 rolling and custom windows survive share links and stored preferences', () => {
+  for (const options of [
+    { windowMode: 'rolling', hours: 24, from: null, until: null },
+    {
+      windowMode: 'custom', hours: 6,
+      from: Date.parse('2026-10-14T12:00:00Z'),
+      until: Date.parse('2026-10-15T18:00:00Z'),
+    },
+  ]) {
+    const state = normalizeLayerState({
+      enabledLayerIds: ['p25-events'], options: { 'p25-events': options },
+    });
+    assert.deepEqual(
+      decodeLayerStateParams(new URLSearchParams(encode(state))).options['p25-events'],
+      options,
+    );
+    assert.deepEqual(
+      parseStoredLayerState(serializeStoredLayerState(state)).options['p25-events'],
+      options,
+    );
+  }
+});
+
 test('production registry is exact, canonical, and rejects incomplete contracts', async () => {
   assert.equal(validateLayerStateRegistry(), true);
-  assert.equal(REGISTERED_LAYER_IDS.length, 41);
-  assert.equal(new Set(REGISTERED_LAYER_IDS).size, 41);
+  assert.equal(REGISTERED_LAYER_IDS.length, 42);
+  assert.equal(new Set(REGISTERED_LAYER_IDS).size, 42);
   assert.ok(REGISTERED_LAYER_IDS.includes('transit'));
   assert.deepEqual(REGISTERED_LAYER_IDS, [...REGISTERED_LAYER_IDS].sort());
   assert.deepEqual(LEGACY_LAYER_STATE_TOKENS, {
@@ -239,7 +262,7 @@ test('production registry is exact, canonical, and rejects incomplete contracts'
   for (const [id, token] of Object.entries(LEGACY_LAYER_STATE_TOKENS)) {
     assert.equal(LAYER_STATE_TOKEN_RESERVATIONS[id], token);
   }
-  assert.equal(nextLayerStateToken(), '05');
+  assert.equal(nextLayerStateToken(), '06');
   assert.equal(
     nextLayerStateToken({ ...LEGACY_LAYER_STATE_TOKENS, alpha: '0', bravo: '3' }),
     '4',

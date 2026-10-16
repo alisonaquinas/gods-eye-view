@@ -22,6 +22,7 @@ import { createApplicationLaunches } from './layers/rocketLaunches.js';
 import { createApplicationAlpr } from './layers/alprCameras.js';
 import { createApplicationEffAtlasLayers } from './layers/effAtlas.js';
 import { createApplicationDeflock } from './layers/deflock.js';
+import { createApplicationP25Events } from './layers/p25Events.js';
 import { createApplicationLocalAdsb } from './layers/localAdsb.js';
 import { createApplicationAwareness } from './layers/militaryAwareness.js';
 import { createApplicationFirms } from './layers/firms.js';
@@ -60,6 +61,7 @@ const SOURCE_METHODS = Object.freeze({
   cables: ['fetch'],
   'eff-atlas': ['getRecords'],
   deflock: ['getRecords'],
+  p25: ['getSnapshot'],
 });
 
 /**
@@ -149,6 +151,7 @@ export function createApplicationCatalog({
           ...(resolveAsset ? { resolveAsset } : {}),
         }),
         createApplicationEarthquakes({ source: sources.earthquakes }),
+        createApplicationP25Events({ source: sources.p25 }),
         createApplicationFirePerimeters({
           source: sources['fire-perimeters'],
         }),
