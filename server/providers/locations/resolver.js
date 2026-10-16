@@ -229,7 +229,10 @@ export function createAddressResolver({
                 row.coordinates?.y,
                 row.coordinates?.x,
                 'ADDRESS',
-                `US Census Bureau Public_AR_Current; address-range interpolation, not a building point. ${url}`,
+                `US Census Bureau Public_AR_Current; address-range interpolation, not a building point. ${url}`.slice(
+                  0,
+                  1000,
+                ),
               ),
             );
         }),
@@ -278,7 +281,24 @@ export function createAddressResolver({
         }),
       );
     }
+    if (!tasks.length) {
+      base.attempts.push({
+        provider: 'GEV resolver',
+        status: 'LOOKUP_FAILED',
+        at: new Date(now()).toISOString(),
+        reason:
+          'No configured geocoder covers this location kind and region; use an approved authoritative source.',
+      });
+    }
     await Promise.all(tasks);
+    // Stable provider preference: response timing must not choose the saved pin.
+    base.candidates.sort(
+      (a, b) =>
+        a.provider.localeCompare(b.provider) ||
+        a.address.localeCompare(b.address) ||
+        a.location.latitude - b.location.latitude ||
+        a.location.longitude - b.location.longitude,
+    );
     const verified = base.candidates.filter((row) => row.verified);
     if (base.attempts.some((row) => row.status === 'LOOKUP_FAILED'))
       return { ...base, status: 'LOOKUP_FAILED' };

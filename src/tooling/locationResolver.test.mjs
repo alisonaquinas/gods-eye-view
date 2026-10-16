@@ -246,3 +246,16 @@ test('resolution endpoint rejects unsupported or narrative fields, never forward
     'NO_MATCH',
   );
 });
+
+test('uncovered location kinds are unavailable rather than a completed no-match lookup', async () => {
+  const f = setup();
+  const result = await f.resolve({
+    ...query,
+    address: 'Main Street',
+    region: 'NY',
+    kind: 'STREET',
+  });
+  assert.equal(result.status, 'LOOKUP_FAILED');
+  assert.equal(f.calls.length, 1);
+  assert.match(result.attempts.at(-1).reason, /No configured geocoder/);
+});
