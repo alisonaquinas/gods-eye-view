@@ -29,6 +29,7 @@ import { windProxy } from './wind.js';
 import { effAtlasProxy } from './effAtlas.js';
 import { deflockProxy } from './deflock.js';
 import { p25EventsProxy } from './p25-events.js';
+import { locationsProxy } from './locations.js';
 
 /** Construct the local provider plugins in their established order. */
 function localProviderPlugins() {
@@ -63,6 +64,7 @@ function localProviderPlugins() {
     effAtlasProxy(),
     deflockProxy(),
     p25EventsProxy(),
+    locationsProxy(),
     keySetupEndpoint(),
   ];
 }
