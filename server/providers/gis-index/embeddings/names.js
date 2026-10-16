@@ -100,6 +100,22 @@ const directions = {
   se: 'southeast',
   sw: 'southwest',
 };
+// Resolve shared components first so names become usable throughout a backfill,
+// rather than waiting for alphabetically late words such as "street".
+export const PRONUNCIATION_PRIORITY = [
+  ...new Set([
+    ...Object.values(roadTypes),
+    ...Object.values(directions),
+    'atlanta',
+    'county',
+    'fulton',
+    'dekalb',
+    'georgia',
+    'and',
+    'of',
+    'the',
+  ]),
+];
 const clean = (value) =>
   String(value || '')
     .normalize('NFKC')

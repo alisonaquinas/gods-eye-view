@@ -88,6 +88,8 @@ Defaults in `deploy/ansible/gis-index.yml` and `embeddingConfig()`:
 | `GEV_GIS_EMBEDDING_BATCH_SIZE`        |      32 |          1–32 |
 | `GEV_GIS_EMBEDDING_FEATURE_BATCH`     |    1000 |        1–2000 |
 
+Shared road types, directions and locality components are prioritized so complete
+name pairs become available early during a large backfill.
 Only one embedding request runs at a time. All endpoints share the persisted
 minimum spacing and hourly budget. `Retry-After` and exponential cooldown survive
 restarts. HTTP 400/422 batches are split to isolate rejected inputs; only those

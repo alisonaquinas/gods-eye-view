@@ -7,6 +7,7 @@ import {
   SEMANTIC_MODEL,
   PHONETIC_MODEL,
   PHONETIC_METHOD,
+  PRONUNCIATION_PRIORITY,
 } from './names.js';
 import { embeddingStatus } from './status.js';
 
@@ -114,8 +115,9 @@ export class EmbeddingStore extends GisIndexStore {
     return (
       await this.pool.query(
         `SELECT token,ipa FROM gev_gis_word_vectors WHERE profile=$1 AND vector IS NULL AND NOT blocked AND retry_at<=$2
-      AND ipa IS ${stage === 'phonetics' ? '' : 'NOT '}NULL ORDER BY token LIMIT $3`,
-        [EMBEDDING_PROFILE, this.now(), limit],
+      AND ipa IS ${stage === 'phonetics' ? '' : 'NOT '}NULL
+      ORDER BY array_position($4::text[],token) NULLS LAST,token LIMIT $3`,
+        [EMBEDDING_PROFILE, this.now(), limit, PRONUNCIATION_PRIORITY],
       )
     ).rows;
   }

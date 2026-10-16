@@ -461,3 +461,34 @@ test(
     }
   },
 );
+
+test(
+  'shared road words are embedded before alphabetic backlog so complete names become available early',
+  { skip: !connection },
+  async () => {
+    const f = await fixture();
+    try {
+      await f.publish();
+      await f.store.setup();
+      await f.store.prepare(1000);
+      await f.store.pool.query(
+        'INSERT INTO gev_gis_word_vectors(token,profile) SELECT unnest($1::text[]),$2',
+        [
+          Array.from(
+            { length: 40 },
+            (_, i) =>
+              'aaa' +
+              String.fromCharCode(97 + Math.floor(i / 26), 97 + (i % 26)),
+          ),
+          embeddingConfig().profile,
+        ],
+      );
+      const pending = await f.store.pending('phonetics', 32);
+      assert.equal(pending[0].token, 'street');
+      assert.ok(pending.some((word) => word.token === 'southwest'));
+      assert.ok(pending.some((word) => word.token === 'atlanta'));
+    } finally {
+      await f.close();
+    }
+  },
+);
