@@ -409,3 +409,55 @@ test(
     }
   },
 );
+
+test(
+  'starting a second reader does not repeat ALTER locks against an active backfill',
+  { skip: !connection },
+  async () => {
+    const f = await fixture();
+    const reader = new GisIndexStore(connection, { schema: f.store.schema });
+    let client;
+    try {
+      await f.publish();
+      await f.store.setup();
+      client = await f.store.pool.connect();
+      await client.query('BEGIN');
+      await client.query(
+        'SELECT source_id,object_id FROM gev_gis_features LIMIT 1 FOR UPDATE',
+      );
+      // This used to queue AccessExclusiveLock behind RowShareLock, then deadlock
+      // when preparation upgraded to RowExclusiveLock to mark the same feature.
+      let timer;
+      try {
+        await Promise.race([
+          reader.initialize(),
+          new Promise((_, reject) => {
+            timer = setTimeout(
+              () => reject(new Error('Reader startup waited on feature locks')),
+              2000,
+            );
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+      await client.query('UPDATE gev_gis_features SET names_revision=1');
+      await client.query('COMMIT');
+      assert.equal(
+        (
+          await reader.pool.query(
+            'SELECT count(*)::int AS n FROM gev_gis_migrations',
+          )
+        ).rows[0].n,
+        1,
+      );
+    } finally {
+      if (client) {
+        await client.query('ROLLBACK');
+        client.release();
+      }
+      await reader.close();
+      await f.close();
+    }
+  },
+);

@@ -64,7 +64,23 @@ export class GisIndexStore {
         if (this.schema !== 'public')
           await client.query(`CREATE SCHEMA IF NOT EXISTS ${this.schema}`);
         await client.query(schemaSql);
-        await client.query(embeddingSchemaSql);
+        await client.query(`CREATE TABLE IF NOT EXISTS gev_gis_migrations (
+          id text PRIMARY KEY, applied_at bigint NOT NULL
+        )`);
+        const migration = 'gis-name-embeddings-v1';
+        const applied = await client.query(
+          'SELECT id FROM gev_gis_migrations WHERE id=$1',
+          [migration],
+        );
+        // Even ALTER TABLE ... IF NOT EXISTS requests an exclusive table lock.
+        // Run schema changes once, not whenever another reader/worker starts.
+        if (!applied.rowCount) {
+          await client.query(embeddingSchemaSql);
+          await client.query(
+            'INSERT INTO gev_gis_migrations(id,applied_at) VALUES($1,$2)',
+            [migration, this.now()],
+          );
+        }
       }).catch((error) => {
         this.ready = null;
         throw error;

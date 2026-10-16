@@ -3,7 +3,9 @@
 GEV stores meaning and pronunciation embeddings for names in its published GIS
 index, including street aliases, source landmark names, localities and counties.
 The standalone `gev-gis-embeddings` service backfills existing records and picks up
-new or changed features automatically. Its checkpoint, request budget and worker
+new or changed features automatically. Schema changes are recorded in `gev_gis_migrations` and run once, so starting
+another worker or reader does not repeat exclusive feature-table ALTER locks.
+Its checkpoint, request budget and worker
 claim are independent of `gev-gis-index`; an embedding outage does not block GIS
 imports or exact address resolution.
 
