@@ -24,6 +24,7 @@ import { createApplicationAlpr } from './layers/alprCameras.js';
 import { createApplicationEffAtlasLayers } from './layers/effAtlas.js';
 import { createApplicationDeflock } from './layers/deflock.js';
 import { createApplicationP25Events } from './layers/p25Events.js';
+import { createApplicationAtlantaCrime } from './layers/atlantaCrime.js';
 import { createApplicationLocalAdsb } from './layers/localAdsb.js';
 import { createApplicationAwareness } from './layers/militaryAwareness.js';
 import { createApplicationFirms } from './layers/firms.js';
@@ -124,6 +125,7 @@ export function createApplicationCatalog({
         }),
         createApplicationEarthquakes({ source: sources.earthquakes }),
         createApplicationP25Events({ source: sources.p25 }),
+        createApplicationAtlantaCrime({ source: sources.atlantaCrime }),
         createApplicationAirQuality({ source: sources['air-quality'] }),
         createApplicationFirePerimeters({
           source: sources['fire-perimeters'],

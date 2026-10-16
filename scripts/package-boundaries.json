@@ -489,6 +489,8 @@
       "src/data/feedState.js",
       "src/data/layerSnapshot.js",
       "src/ui/p25EventsControls.js",
+      "src/ui/atlantaCrimeControls.js",
+      "src/layers/atlantaCrime/model.js",
       "src/data/effAtlas.js"
     ],
     "external": []
@@ -720,6 +722,8 @@
       "src/ui/localSdrPresentation.js",
       "src/data/cameraArrival.js",
       "src/ui/p25EventsControls.js",
+      "src/ui/atlantaCrimeControls.js",
+      "src/layers/atlantaCrime/model.js",
       "src/data/effAtlas.js"
     ],
     "external": ["cesium"]
@@ -2321,7 +2325,12 @@
       "src/layers/airQuality/model.js",
       "src/layers/airQuality/source.js",
       "src/ui/p25EventsControls.js",
+      "src/ui/atlantaCrimeControls.js",
+      "src/layers/atlantaCrime/model.js",
       "src/app/layers/p25Events.js",
+      "src/app/layers/atlantaCrime.js",
+      "src/layers/atlantaCrime/index.js",
+      "src/layers/atlantaCrime/source.js",
       "src/layers/p25Events/index.js",
       "src/layers/p25Events/model.js",
       "src/layers/p25Events/source.js",
@@ -2890,6 +2899,10 @@
       "src/layers/airQuality/model.js",
       "src/layers/airQuality/source.js",
       "src/app/layers/p25Events.js",
+      "src/app/layers/atlantaCrime.js",
+      "src/layers/atlantaCrime/index.js",
+      "src/layers/atlantaCrime/model.js",
+      "src/layers/atlantaCrime/source.js",
       "src/layers/p25Events/index.js",
       "src/layers/p25Events/model.js",
       "src/layers/p25Events/surface.js",

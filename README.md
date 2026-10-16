@@ -416,6 +416,12 @@ _The Space Missions layer replaying a Falcon 9 ascent — labeled `RECONSTRUCTED
 
 ![Diving into the Bahamas and revealing labeled submarine cable routes beneath the globe](docs/media/09-undersea-cables.gif)
 
+**Atlanta Police:** enable **Layers → Events → Atlanta Police** for APD crime
+reports and police zone/beat outlines. The default is the **last 48 hours**;
+choose another preset or a custom range and filter by occurrence or report date.
+Includes the current dashboard data and the portal's historical archives, with
+saved/shareable settings. No key required. [Coverage and source details](docs/ATLANTA-CRIME.md).
+
 **Missing a layer you want?** Open an issue — or add it and send the PR.
 
 ---

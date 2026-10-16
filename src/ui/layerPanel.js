@@ -9,6 +9,7 @@ import {
 } from '../keySetupCore.mjs';
 import { createWeatherPanel } from './weatherPanel.js';
 import { createP25EventsControls } from './p25EventsControls.js';
+import { createAtlantaCrimeControls } from './atlantaCrimeControls.js';
 import { EFF_ATLAS_TECHNOLOGIES } from '../data/effAtlas.js';
 const FEED_STATE_LABELS = Object.freeze({
   nominal: 'ON',
@@ -58,6 +59,7 @@ const PANEL_GROUPS = [
     label: 'Events',
     ids: [
       'p25-events',
+      'atlanta-crime',
       'rocket-launches',
       'earthquakes',
       'local-firms',
@@ -429,6 +431,29 @@ export class LayerPanel {
   _syncRowControls(container, layer, listContainer = null) {
     if (!container) return;
     const controls = layer.enabled ? this._rowControlsFor(layer.id) : null;
+    if (layer.id === 'atlanta-crime') {
+      if (!container._atlantaCrimeControls) {
+        const generation = this._generation;
+        container._atlantaCrimeControls = createAtlantaCrimeControls(
+          container,
+          (params) => {
+            if (
+              !this._destroyed &&
+              this._generation === generation &&
+              this.isEnabled(layer.id)
+            )
+              return this.setLayerParams(layer.id, params, { origin: 'user' });
+          },
+        );
+        this._removers.push(() => {
+          container._atlantaCrimeControls?.destroy();
+          container._atlantaCrimeControls = null;
+        });
+      }
+      container.hidden = !controls?.atlantaCrime;
+      container._atlantaCrimeControls.update(controls?.atlantaCrime);
+      return;
+    }
     if (layer.id === 'p25-events') {
       if (!container._p25Controls)
         container._p25Controls = createP25EventsControls(container, (params) =>

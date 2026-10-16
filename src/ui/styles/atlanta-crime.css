@@ -1,0 +1,121 @@
+.atlanta-crime-controls {
+  width: 100%;
+  min-width: 0;
+  color: var(--text-primary, #e8edf5);
+  font: 12px/1.5 var(--font-sans, sans-serif);
+}
+[data-layer-id='atlanta-crime'] .data-toggle-controls {
+  padding-left: 0;
+}
+.atlanta-crime-controls [hidden] {
+  display: none;
+}
+.atlanta-crime-controls .data-toggle-chip {
+  min-height: 34px;
+  padding: 6px 8px;
+  color: inherit;
+  font: inherit;
+  letter-spacing: normal;
+}
+.atlanta-crime-controls .data-toggle-chip:hover {
+  color: var(--accent, #5edbd5);
+}
+.atlanta-crime-controls .data-toggle-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.atlanta-crime-window label {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+}
+.atlanta-crime-window input,
+.atlanta-crime-window select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px;
+  border: 1px solid var(--glass-border, #596676);
+  border-radius: 4px;
+  background: var(--bg-panel, #101820);
+  color: inherit;
+  color-scheme: dark;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.atlanta-crime-actions,
+.atlanta-crime-legend,
+.atlanta-crime-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+.atlanta-crime-controls p {
+  margin: 8px 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.atlanta-crime-coverage,
+.atlanta-crime-note,
+.atlanta-crime-custom p {
+  color: #c0cbd8;
+}
+.atlanta-crime-error {
+  color: #ffb4a8;
+}
+.atlanta-crime-legend span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+.atlanta-crime-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.atlanta-crime-controls summary {
+  cursor: pointer;
+  padding: 8px 0;
+}
+.atlanta-crime-list {
+  max-height: 230px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #596676 transparent;
+}
+.atlanta-crime-list button {
+  display: block;
+  width: 100%;
+  padding: 9px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--glass-border, #596676);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  font: inherit;
+  cursor: pointer;
+}
+.atlanta-crime-list button:hover,
+.atlanta-crime-list button[aria-pressed='true'] {
+  background: var(--accent-dim, #183a43);
+}
+.atlanta-crime-selected {
+  margin: 16px 0;
+  overflow-wrap: anywhere;
+}
+.atlanta-crime-selected h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.atlanta-crime-links a {
+  color: var(--accent, #5edbd5);
+  text-underline-offset: 3px;
+}
+.atlanta-crime-controls :focus-visible {
+  outline: 2px solid var(--accent, #5edbd5);
+  outline-offset: 2px;
+}

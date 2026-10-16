@@ -37,8 +37,8 @@ test('the complete Realtime tool payload pins the manifest-generated layer relea
     // omit top-level anyOf (OpenAI rejects it). Contacts list routing preserves
     // requested radius and center authority in descriptions only.
     // Street Level and GNSS extend the manifest; tracked and analyst aircraft describe broadcasts.
-    // Air quality and the fork's P25, EFF and DeFlock visibility controls extend the manifest.
-    '0ecf26d244eb1d2a1070b912270d823381bb160e45c625c8b7700fbaaf44cc6d',
+    // Air quality and the fork's P25, EFF, DeFlock and Atlanta Police visibility controls extend the manifest.
+    '731424c05a6da78d75c7869e2a25e2548f9f5eb211e1212683961ee0fa3a0ece',
   );
 });
 

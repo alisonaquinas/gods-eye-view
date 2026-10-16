@@ -315,6 +315,24 @@ function satelliteFilterOption() {
 }
 
 const OPTION_GROUPS = Object.freeze({
+  'atlanta-crime': Object.freeze([
+    enumOption('windowMode', 'm', 'rolling', ['rolling', 'custom'], {
+      rolling: 'r',
+      custom: 'c',
+    }),
+    integerOption('hours', 'h', 48),
+    integerOption('from', 'f', null),
+    integerOption('until', 'u', null),
+    enumOption('dateField', 'd', 'occurred', ['occurred', 'reported'], {
+      occurred: 'o',
+      reported: 'r',
+    }),
+    enumOption('boundaries', 'b', 'zones', ['none', 'zones', 'beats'], {
+      none: 'n',
+      zones: 'z',
+      beats: 'b',
+    }),
+  ]),
   'p25-events': Object.freeze([
     enumOption('windowMode', 'm', 'rolling', ['rolling', 'custom'], {
       rolling: 'r',
@@ -605,6 +623,12 @@ export const LAYER_STATE_REGISTRY = Object.freeze([
     id: 'alpr-cameras',
     token: 'p',
     disposition: 'enabled-only',
+  }),
+  Object.freeze({
+    id: 'atlanta-crime',
+    token: '09',
+    disposition: 'enabled+options',
+    optionOwner: 'atlanta-crime',
   }),
   Object.freeze({
     id: 'bhote-koshi-2026',

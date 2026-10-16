@@ -99,6 +99,11 @@ export const NYC_DOT_DISCLAIMER =
   'The public is advised to observe posted signage for compliance with applicable laws and regulations.';
 
 export const DATA_CREDITS = [
+  {
+    key: 'atlanta-police',
+    html: 'Crime reports and police boundaries: <a href="https://opendata.atlantapd.org/" target="_blank" rel="noopener">Atlanta Police Department Open Data</a>',
+  },
+
   // ── Live sources ────────────────────────────────────────────────
   {
     key: 'deflock',

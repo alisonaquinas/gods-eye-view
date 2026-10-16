@@ -243,10 +243,22 @@ test('P25 rolling and custom windows survive share links and stored preferences'
   }
 });
 
+test('Atlanta crime ranges, date basis and boundaries survive sharing and stored preferences', () => {
+  for (const options of [
+    { windowMode: 'rolling', hours: 48, from: null, until: null, dateField: 'occurred', boundaries: 'zones' },
+    { windowMode: 'rolling', hours: 168, from: null, until: null, dateField: 'reported', boundaries: 'none' },
+    { windowMode: 'custom', hours: 48, from: Date.parse('2020-12-23T00:00:00Z'), until: Date.parse('2020-12-24T00:00:00Z'), dateField: 'occurred', boundaries: 'beats' },
+  ]) {
+    const state = normalizeLayerState({ enabledLayerIds: ['atlanta-crime'], options: { 'atlanta-crime': options } });
+    assert.deepEqual(decodeLayerStateParams(new URLSearchParams(encode(state))).options['atlanta-crime'], options);
+    assert.deepEqual(parseStoredLayerState(serializeStoredLayerState(state)).options['atlanta-crime'], options);
+  }
+});
+
 test('production registry is exact, canonical, and rejects incomplete contracts', async () => {
   assert.equal(validateLayerStateRegistry(), true);
-  assert.equal(REGISTERED_LAYER_IDS.length, 45);
-  assert.equal(new Set(REGISTERED_LAYER_IDS).size, 45);
+  assert.equal(REGISTERED_LAYER_IDS.length, 46);
+  assert.equal(new Set(REGISTERED_LAYER_IDS).size, 46);
   assert.ok(REGISTERED_LAYER_IDS.includes('transit'));
   assert.deepEqual(REGISTERED_LAYER_IDS, [...REGISTERED_LAYER_IDS].sort());
   assert.deepEqual(LEGACY_LAYER_STATE_TOKENS, {
@@ -285,7 +297,7 @@ test('production registry is exact, canonical, and rejects incomplete contracts'
   for (const [id, token] of Object.entries(LEGACY_LAYER_STATE_TOKENS)) {
     assert.equal(LAYER_STATE_TOKEN_RESERVATIONS[id], token);
   }
-  assert.equal(nextLayerStateToken(), '09');
+  assert.equal(nextLayerStateToken(), '0a');
   assert.equal(
     nextLayerStateToken({ ...LEGACY_LAYER_STATE_TOKENS, alpha: '0', bravo: '3' }),
     '4',

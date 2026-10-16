@@ -44,6 +44,12 @@ const AIRCRAFT_FIELDS = {
 
 const layers = [
   {
+    id: 'atlanta-crime',
+    aliases: ['atlanta police', 'atlanta crime', 'apd crime'],
+    context: false,
+    noQuery: 'map and offense-list display; configure the time range in the layer panel',
+  },
+  {
     id: 'p25-events',
     aliases: ['p25 events', 'police radio events'],
     context: false,

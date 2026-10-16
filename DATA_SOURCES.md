@@ -11,7 +11,24 @@ How to read this:
 
 ---
 
+## Atlanta Police
+
+The **Atlanta Police** layer combines the public mapping data behind the
+[Zone Crime Map](https://atlantapd.maps.arcgis.com/apps/dashboards/af4a3506502f4e9fa81b2b3f63c61397)
+and [APD Open Data](https://opendata.atlantapd.org/). Both sites' current crime views
+use `OpenDataWebsite_Crime_view/FeatureServer/0`; it is fetched once, so opening
+both sources does not double the offense count. The portal's 2009–2020 and
+1997–2008 archives are queried for older ranges. Zone and beat outlines come
+from the dashboard's 2025 boundary services.
+
+Attribution: **Atlanta Police Department Open Data**. Data remains subject to
+APD's published terms and notices; the repository's MIT license covers code.
+APD says its crime data updates hourly, may be reclassified or removed, and
+temporarily excludes reports without valid coordinates. It cannot reproduce
+an official crime report. See [layer behavior and endpoints](docs/ATLANTA-CRIME.md).
+
 ## Live sources (fetched at runtime — not stored in this repo)
+
 
 | Source                                                                | Used for                                                                                                                            | License / terms                                                                                                                                                                                                                                                                                                                                       | Attribution                                                                                                                                 |
 | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |

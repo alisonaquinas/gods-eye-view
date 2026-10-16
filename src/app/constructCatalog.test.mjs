@@ -40,7 +40,8 @@ test('catalogs construct distinct layers and classification from their supplied 
     signal: b.signal,
     surface: fixtureSurface(b.signal),
   });
-  assert.equal(first.layers.length, 46);
+  assert.equal(first.layers.length, 47);
+  assert.ok(first.get('atlanta-crime'));
   assert.ok(first.get('p25-events'));
   assert.ok(first.get('deflock-cameras'));
   for (const id of ['eff-alpr', 'eff-drones', 'eff-video-analytics'])
@@ -158,7 +159,7 @@ test('Mapillary can be omitted or replaced without changing catalog membership',
     surface: fixtureSurface(lifetime.signal),
   };
   const catalog = createApplicationCatalog(options);
-  assert.equal(catalog.layers.length, 46);
+  assert.equal(catalog.layers.length, 47);
   assert.deepEqual(catalog.get('street-level').providerIds, []);
   assert.equal(
     catalogControlServices(catalog).streetLevelLayer,
