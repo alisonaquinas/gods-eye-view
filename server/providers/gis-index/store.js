@@ -9,6 +9,7 @@ import { lookupIndex } from './lookup.js';
 import { searchSchemaSql } from './search-schema.js';
 import { createNameSearch } from './search.js';
 import { annotateZones } from './search-zones.js';
+import { uspsSchemaSql } from '../locations/usps-store.js';
 
 const numberFields = [
   'cursor',
@@ -73,6 +74,7 @@ export class GisIndexStore {
         for (const [migration, sql] of [
           ['gis-name-embeddings-v1', embeddingSchemaSql],
           ['gis-name-search-v1', searchSchemaSql],
+          ['location-provider-budgets-v1', uspsSchemaSql],
         ]) {
           const applied = await client.query(
             'SELECT id FROM gev_gis_migrations WHERE id=$1',

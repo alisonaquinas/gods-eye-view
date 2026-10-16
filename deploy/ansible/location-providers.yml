@@ -1,0 +1,73 @@
+---
+- name: Install private location-provider credentials and request budgets
+  hosts: gev
+  gather_facts: false
+  vars:
+    gev_usps_hourly: 40
+    gev_usps_daily: 200
+    gev_usps_monthly: 1500
+    gev_usps_interval_ms: 2000
+    gev_location_restart: true
+  tasks:
+    - name: Require an operator-supplied encrypted credential file
+      ansible.builtin.assert:
+        that:
+          - gev_location_credentials_file is defined
+          - gev_usps_hourly | int > 0 and gev_usps_hourly | int <= 60
+          - gev_usps_daily | int > 0 and gev_usps_daily | int <= 1000
+          - gev_usps_monthly | int > 0 and gev_usps_monthly | int <= 10000
+          - gev_usps_interval_ms | int >= 2000 and gev_usps_interval_ms | int <= 60000
+    - name: Load private credential variables
+      ansible.builtin.include_vars:
+        file: '{{ gev_location_credentials_file }}'
+        name: gev_location_credentials
+      no_log: true
+    - name: Validate single-line secret values before writing a systemd environment file
+      ansible.builtin.assert:
+        that:
+          - gev_location_credentials.usps_api_key is string
+          - gev_location_credentials.usps_api_secret is string
+          - gev_location_credentials.usps_api_key is match('^[A-Za-z0-9._~+/=-]{8,4096}$')
+          - gev_location_credentials.usps_api_secret is match('^[A-Za-z0-9._~+/=-]{8,4096}$')
+      no_log: true
+    - name: Install server-only USPS credentials
+      ansible.builtin.copy:
+        dest: /etc/gods-eye-view/location-providers.env
+        owner: root
+        group: root
+        mode: '0600'
+        content: |
+          USPS_API_KEY={{ gev_location_credentials.usps_api_key }}
+          USPS_API_SECRET={{ gev_location_credentials.usps_api_secret }}
+          GEV_USPS_REQUESTS_PER_HOUR={{ gev_usps_hourly }}
+          GEV_USPS_REQUESTS_PER_DAY={{ gev_usps_daily }}
+          GEV_USPS_REQUESTS_PER_MONTH={{ gev_usps_monthly }}
+          GEV_USPS_MIN_INTERVAL_MS={{ gev_usps_interval_ms }}
+      no_log: true
+      diff: false
+    - name: Load credentials only into the GEV web provider process
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/gods-eye-view.service.d/location-providers.conf
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          [Service]
+          EnvironmentFile=/etc/gods-eye-view/location-providers.env
+    - name: Reload systemd configuration
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+    - name: Restart GEV after an independent credential update
+      ansible.builtin.systemd_service:
+        name: gods-eye-view
+        state: restarted
+      when: gev_location_restart | bool
+    - name: Verify credential loading without spending provider quota
+      ansible.builtin.uri:
+        url: http://127.0.0.1:4173/api/locations/providers/status
+        return_content: true
+      register: gev_location_status
+      until: gev_location_status.status == 200 and gev_location_status.json.providers[0].enabled
+      retries: 8
+      delay: 3
+      when: gev_location_restart | bool

@@ -166,7 +166,79 @@ database/spelling evidence and returns `nameSearch.warnings`; it does not stop
 the background indexer or replace exact-match behavior. A failed external
 provider still produces `LOOKUP_FAILED` with any suggestions attached for review.
 
+## Optional USPS address support
+
+When `USPS_API_KEY` and `USPS_API_SECRET` are configured, unresolved numbered US
+addresses can use the [USPS Addresses v3 API](https://developers.usps.com/addressesv3)
+for postal standardization. The credentials are USPS's Consumer Key and Consumer
+Secret and require an account enabled for the Addresses API. A token is obtained
+from the fixed USPS OAuth endpoint and reused in memory until shortly before it
+expires. Credentials and tokens never appear in API responses, URLs, logs, the
+frontend bundle, or the persistent address cache.
+
+The existing saved registry, exact GIS records and exact geocoder matches take
+priority and consume no USPS quota. Only the submitted location fields go to
+USPS, without incident details, transcripts, APD context, or caller credentials.
+Street-only, intersection and landmark requests do not use USPS. Unsupported
+field lengths are reported without an upstream call.
+
+The resolver's optional `postal` result contains the standardized address, ZIP
+information, DPV confirmation, match/correction codes and explicit limitations.
+Only a complete DPV-confirmed single match, with the original number, unit,
+direction, road type and locality preserved, can corroborate an existing
+candidate or produce a new local-GIS suggestion. Postal corrections still
+require source confirmation. USPS supplies no geocoordinates and does not
+establish where an incident occurred. Its failure does not invalidate existing
+GIS or phonetic evidence.
+
+All outbound USPS calls, **including OAuth token requests and failures**, share
+these default server-side budgets:
+
+| Budget                                  |        Default |
+| --------------------------------------- | -------------: |
+| Rolling hour                            |    40 requests |
+| Rolling 24 hours                        |   200 requests |
+| UTC calendar month                      | 1,500 requests |
+| Minimum time between requests           |      2 seconds |
+| Concurrent USPS operations per database |              1 |
+
+Budgets are PostgreSQL-backed and survive deployment, restarts and multiple web
+instances. Missing budget storage disables USPS calls. Successful address
+results cache for 24 hours; completed no-match/rejected requests cache for one
+hour, with a 2,000-entry bound. Upstream `Retry-After` is honored without an
+immediate retry. Authentication/enrollment failures cool down for an hour;
+transient failures cool down for at least a minute. The API returns sanitized
+`RATE_LIMITED`, `AUTH_REQUIRED`, `UNAVAILABLE`, `BUSY` or `UNSUPPORTED` status
+instead of bypassing the budget. The existing uncredentialed providers retain
+their own limits.
+
+Read-only `GET /api/locations/providers/status` reports whether USPS is configured
+and enabled, usage/remaining budgets, last outcome, and the next permitted request
+time. It performs no outbound request and exposes no credential material. Tune
+`GEV_USPS_REQUESTS_PER_HOUR`, `GEV_USPS_REQUESTS_PER_DAY`,
+`GEV_USPS_REQUESTS_PER_MONTH` and `GEV_USPS_MIN_INTERVAL_MS` server-side after
+checking the account's actual allowance. Application budgets do not meter uses
+of the same credentials outside this GEV database.
+
+### Private deployment
+
+Use `deploy/ansible/location-providers.yml` with
+`gev_location_credentials_file` pointing to an **Ansible Vault encrypted** file
+on the deployment controller, containing `usps_api_key` and `usps_api_secret`.
+Keep that file outside the source repository. The playbook uses `no_log`, disables
+secret diffs and writes `/etc/gods-eye-view/location-providers.env` as root with
+mode `0600`. Its systemd drop-in loads the keys only into the GEV web provider
+process. Neither GIS backfill worker receives them, and the import does not
+perform a mass USPS backfill. Set `gev_location_restart=false` when staging keys
+immediately before a separately guarded application deployment.
+
+The deployed controller credential file is
+`/root/.config/gev/location-providers.vault.json`. The playbook is repeatable for
+credential rotation; it never resets the durable usage counters. A 401/403 result
+means credentials or USPS Addresses API enrollment need attention; refer to the
+[USPS account access instructions](https://www.usps.com/business/api-access.htm).
+
 Validation: `npm run test:gis`, `npm run test:gis:embeddings`, and
-`npm run test:gis:search`. Set `GEV_GIS_TEST_DATABASE_URL` to an isolated PostgreSQL
+`npm run test:gis:search`, and `npm run test:usps`. Set `GEV_GIS_TEST_DATABASE_URL` to an isolated PostgreSQL
 database ending in `_test` for the database integration cases. Run files with
 `--test-concurrency=1` when sharing one test database with worker-claim tests.

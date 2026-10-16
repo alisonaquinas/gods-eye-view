@@ -218,6 +218,7 @@ test('resolution endpoint rejects unsupported or narrative fields, never forward
   plugin.configurePreviewServer({
     middlewares: {
       use(path, fn) {
+        if (path === '/api/locations/providers/status') return;
         assert.equal(path, '/api/locations/resolve');
         handler = fn;
       },

@@ -1,5 +1,6 @@
 import { readResponseJsonCapped } from '../common/http.js';
 import { normalizeAddress, matches, distanceMeters } from './matching.js';
+import { addPostalEvidence } from './postal.js';
 
 const CENSUS = 'https://geocoding.geo.census.gov/geocoder/locations/address';
 const ATLANTA =
@@ -54,6 +55,7 @@ export function createAddressResolver({
   indexLookup,
   indexSuggest,
   zoneLookup,
+  postalLookup,
 } = {}) {
   const cache = new Map(),
     inFlight = new Map();
@@ -267,7 +269,7 @@ export function createAddressResolver({
           };
         }
       }
-      return value;
+      return addPostalEvidence(query, value, postalLookup, indexLookup, now);
     })();
     inFlight.set(key, pending);
     try {

@@ -56,7 +56,8 @@
     "test:gis": "node --test src/tooling/gisIndex.test.mjs src/tooling/locationResolver.test.mjs",
     "gis:embeddings": "node scripts/gis-embeddings.mjs",
     "test:gis:embeddings": "node --test src/tooling/gisEmbeddings.test.mjs",
-    "test:gis:search": "node --test src/tooling/gisNameSearch.test.mjs"
+    "test:gis:search": "node --test src/tooling/gisNameSearch.test.mjs",
+    "test:usps": "node --test src/tooling/usps.test.mjs"
   },
   "dependencies": {
     "@jtarrio/signals": "^0.10.0",
