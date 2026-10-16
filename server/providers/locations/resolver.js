@@ -52,6 +52,8 @@ export function createAddressResolver({
     'https://sdr.alisonaquinas.pro/api/graphql',
   registryCookie = process.env.P25_SDR_COOKIE,
   indexLookup,
+  indexSuggest,
+  zoneLookup,
 } = {}) {
   const cache = new Map(),
     inFlight = new Map();
@@ -221,7 +223,52 @@ export function createAddressResolver({
           },
         ],
       };
-    const pending = lookup(query, base);
+    const pending = (async () => {
+      let value = await lookup(query, base);
+      if (value.status !== 'RESOLVED' && indexSuggest) {
+        try {
+          const suggestions = await indexSuggest(query);
+          const suggested = (suggestions?.candidates || []).map((row) =>
+            matches(query, row),
+          );
+          value = {
+            ...value,
+            candidates: [...suggested, ...value.candidates].slice(0, 35),
+            nameSearch: {
+              coverage: suggestions?.coverage || null,
+              warnings: suggestions?.warnings || [],
+            },
+            status:
+              value.status === 'NO_MATCH' && suggested.length
+                ? 'AMBIGUOUS'
+                : value.status,
+            attempts: [
+              ...value.attempts,
+              {
+                provider: 'GEV indexed name search',
+                status: suggested.length ? 'OK' : 'NO_MATCH',
+                at: new Date(now()).toISOString(),
+              },
+            ],
+          };
+        } catch {
+          value = {
+            ...value,
+            attempts: [
+              ...value.attempts,
+              {
+                provider: 'GEV indexed name search',
+                status: 'UNAVAILABLE',
+                at: new Date(now()).toISOString(),
+                reason:
+                  'Name search unavailable; other lookup evidence retained.',
+              },
+            ],
+          };
+        }
+      }
+      return value;
+    })();
     inFlight.set(key, pending);
     try {
       const value = await pending;
@@ -385,5 +432,20 @@ export function createAddressResolver({
       },
     };
   }
-  return resolve;
+  return async (query) => {
+    const value = await resolve(query);
+    if (!query.apdZone || !zoneLookup || !value.candidates.length) return value;
+    try {
+      return {
+        ...value,
+        candidates: await zoneLookup(query, value.candidates),
+      };
+    } catch {
+      return {
+        ...value,
+        apdZoneWarning:
+          'APD zone boundaries unavailable; zone hint was not applied.',
+      };
+    }
+  };
 }

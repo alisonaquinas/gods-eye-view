@@ -7,6 +7,10 @@ export function locationsProxy({
   index = null,
   resolve = createAddressResolver({
     indexLookup: index ? (query) => index.lookup(query) : undefined,
+    indexSuggest: index ? (query) => index.suggest(query) : undefined,
+    zoneLookup: index
+      ? (query, candidates) => index.zones(query, candidates)
+      : undefined,
   }),
 } = {}) {
   const allow = makeRateLimiter({ windowMs: 60_000, max: 30, globalMax: 120 });

@@ -446,7 +446,7 @@ test(
       assert.equal(
         (
           await reader.pool.query(
-            'SELECT count(*)::int AS n FROM gev_gis_migrations',
+            "SELECT count(*)::int AS n FROM gev_gis_migrations WHERE id='gis-name-embeddings-v1'",
           )
         ).rows[0].n,
         1,

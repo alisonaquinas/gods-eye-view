@@ -9,6 +9,12 @@ Its checkpoint, request budget and worker
 claim are independent of `gev-gis-index`; an embedding outage does not block GIS
 imports or exact address resolution.
 
+The [location resolver](LOCATION-RESOLVER.md#pronunciation-and-meaning-suggestions)
+uses these vectors for city-scoped, phonetic name suggestions with component
+constraints, explicit coverage and confidence evidence, and optional APD zone
+context. It reuses stored vectors and maintains a small separate interactive
+query cache; that cache does not add user spellings to the indexed-name inventory.
+
 ## Models and representation
 
 Requests go only to <https://embedding.alisonaquinas.pro>. The service's

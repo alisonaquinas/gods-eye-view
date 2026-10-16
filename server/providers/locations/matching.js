@@ -33,15 +33,22 @@ export function normalizeAddress(value) {
     .join(' ');
 }
 export function parseLocationQuery(params) {
-  const allowed = new Set(['address', 'city', 'region', 'kind']);
+  const allowed = new Set(['address', 'city', 'region', 'kind', 'apdZone']);
   for (const key of params.keys()) {
     if (!allowed.has(key) || params.getAll(key).length !== 1)
-      throw new Error('Use only address, city, region, and kind once each.');
+      throw new Error(
+        'Use only address, city, region, kind, and optional apdZone once each.',
+      );
   }
   const address = (params.get('address') || '').trim();
   const city = (params.get('city') || '').trim();
   const region = (params.get('region') || '').trim().toUpperCase();
   const kind = params.get('kind') || 'ADDRESS';
+  const apdZone = params.get('apdZone');
+  if (apdZone !== null && (!/^[1-6]$/.test(apdZone) || region !== 'GA'))
+    throw new Error(
+      'apdZone must be an Atlanta Police zone number from 1 to 6 in GA.',
+    );
   if (
     !address ||
     address.length > 200 ||
@@ -62,7 +69,14 @@ export function parseLocationQuery(params) {
     throw new Error(
       'ADDRESS requires a confirmed street number; use STREET without a number for an approximate street lookup.',
     );
-  return { address, city, region, kind, country: 'US' };
+  return {
+    address,
+    city,
+    region,
+    kind,
+    country: 'US',
+    ...(apdZone === null ? {} : { apdZone: Number(apdZone) }),
+  };
 }
 const cityKey = (value) => value.toLowerCase().replace(/\s+/g, ' ').trim();
 const intersectionKey = (value) =>
@@ -75,6 +89,10 @@ export function matches(query, candidate) {
   const key =
     query.kind === 'INTERSECTION' ? intersectionKey : normalizeAddress;
   const reasons = [];
+  if (candidate.match?.requiresConfirmation)
+    reasons.push(
+      'Indexed name suggestion requires confirmation from source evidence.',
+    );
   if (key(query.address) !== key(candidate.address))
     reasons.push('Address components differ.');
   if (cityKey(query.city) !== cityKey(candidate.city || ''))

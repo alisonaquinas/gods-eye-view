@@ -1,12 +1,13 @@
 import { normalizeAddress, distanceMeters } from '../locations/matching.js';
 import { cityKey } from './normalize.js';
 import { CYCLE_MS } from './catalog.js';
+import { prepareName, NAME_RECIPE } from './embeddings/names.js';
 
 /** Exact components and explicit source locality only. No fuzzy automatic pinning. */
 export async function lookupIndex(pool, query, now) {
   if (
     query.region !== 'GA' ||
-    !['ADDRESS', 'STREET', 'INTERSECTION'].includes(query.kind)
+    !['ADDRESS', 'STREET', 'INTERSECTION', 'LANDMARK'].includes(query.kind)
   )
     return null;
   const city = cityKey(query.city),
@@ -29,6 +30,19 @@ export async function lookupIndex(pool, query, now) {
       center AS (SELECT avg(latitude) AS lat,avg(longitude) AS lon,count(*) AS segments FROM roads)
       SELECT roads.*,center.segments FROM roads,center ORDER BY ((latitude-center.lat)^2+(longitude-center.lon)^2), (source->>'priority')::int,source_id,object_id LIMIT 1`,
         [key, city],
+      )
+    ).rows;
+  } else if (query.kind === 'LANDMARK') {
+    const name = prepareName('PLACE', query.address);
+    if (!name) return null;
+    rows = (
+      await pool.query(
+        `${base} JOIN gev_gis_feature_names fn USING(source_id,object_id)
+      JOIN gev_gis_names n ON n.id=fn.name_id
+      WHERE n.kind='PLACE' AND n.name_key=$1 AND n.recipe=$2
+        AND f.city_keys @> ARRAY[$3]::text[] AND f.region='GA'
+      ORDER BY (s.config->>'priority')::int,f.source_id,f.object_id LIMIT 26`,
+        [name.key, NAME_RECIPE, city],
       )
     ).rows;
   } else {
@@ -62,7 +76,9 @@ export async function lookupIndex(pool, query, now) {
         ? 'Published address point'
         : query.kind === 'STREET'
           ? `Approximate point on ${row.segments} indexed street segments; not a numbered address`
-          : 'Shared street-centerline endpoint at the same source elevation level';
+          : query.kind === 'LANDMARK'
+            ? `Named place on a published address record (${row.address}); not a building footprint`
+            : 'Shared street-centerline endpoint at the same source elevation level';
     return {
       provider: 'GEV GIS index',
       address: query.kind === 'ADDRESS' ? row.address : query.address,

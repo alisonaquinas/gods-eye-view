@@ -6,6 +6,9 @@ import { embeddingStatus } from './embeddings/status.js';
 import { grid } from './catalog.js';
 import { initialProgress } from './progress.js';
 import { lookupIndex } from './lookup.js';
+import { searchSchemaSql } from './search-schema.js';
+import { createNameSearch } from './search.js';
+import { annotateZones } from './search-zones.js';
 
 const numberFields = [
   'cursor',
@@ -67,19 +70,23 @@ export class GisIndexStore {
         await client.query(`CREATE TABLE IF NOT EXISTS gev_gis_migrations (
           id text PRIMARY KEY, applied_at bigint NOT NULL
         )`);
-        const migration = 'gis-name-embeddings-v1';
-        const applied = await client.query(
-          'SELECT id FROM gev_gis_migrations WHERE id=$1',
-          [migration],
-        );
-        // Even ALTER TABLE ... IF NOT EXISTS requests an exclusive table lock.
-        // Run schema changes once, not whenever another reader/worker starts.
-        if (!applied.rowCount) {
-          await client.query(embeddingSchemaSql);
-          await client.query(
-            'INSERT INTO gev_gis_migrations(id,applied_at) VALUES($1,$2)',
-            [migration, this.now()],
+        for (const [migration, sql] of [
+          ['gis-name-embeddings-v1', embeddingSchemaSql],
+          ['gis-name-search-v1', searchSchemaSql],
+        ]) {
+          const applied = await client.query(
+            'SELECT id FROM gev_gis_migrations WHERE id=$1',
+            [migration],
           );
+          // Even ALTER TABLE ... IF NOT EXISTS requests an exclusive table lock.
+          // Run schema changes once, not whenever another reader/worker starts.
+          if (!applied.rowCount) {
+            await client.query(sql);
+            await client.query(
+              'INSERT INTO gev_gis_migrations(id,applied_at) VALUES($1,$2)',
+              [migration, this.now()],
+            );
+          }
         }
       }).catch((error) => {
         this.ready = null;
@@ -475,6 +482,15 @@ export class GisIndexStore {
   async lookup(query) {
     await this.initialize();
     return lookupIndex(this.pool, query, this.now());
+  }
+  async suggest(query) {
+    await this.initialize();
+    this.nameSearch ||= createNameSearch(this);
+    return this.nameSearch(query);
+  }
+  async zones(query, candidates) {
+    await this.initialize();
+    return annotateZones(this, query, candidates);
   }
   async close() {
     if (this.closed) return;

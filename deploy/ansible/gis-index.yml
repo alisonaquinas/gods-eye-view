@@ -12,6 +12,7 @@
     gev_gis_page_size: 1000
     gev_gis_schema: public
     gev_gis_pilot: true
+    gev_embeddings_pilot: true
     gev_embeddings_interval_ms: 2000
     gev_embeddings_hourly_limit: 600
     gev_embeddings_batch_size: 32
@@ -209,6 +210,7 @@
             seconds: '{{ (gev_gis_interval_ms | int / 1000) | round(0, "ceil") | int + 2 }}'
           when: gev_gis_pilot | bool
         - name: Verify a bounded embedding backfill batch as the service account
+          when: gev_embeddings_pilot | bool
           ansible.builtin.command:
             argv:
               - systemd-run
