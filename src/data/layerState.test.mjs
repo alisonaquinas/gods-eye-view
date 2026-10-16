@@ -1,3 +1,4 @@
+import { encodeParams, decodeParams } from '../layers/streetLevel/params.js';
 import { readShellSource } from '../testSupport/readShellSource.mjs';
 import { expandApplicationHtml } from '../../build/application-html.js';
 import { readLayerSource } from '../testSupport/readLayerSource.mjs';
@@ -11,7 +12,6 @@ import {
   LAYER_STATE_STORAGE_KEY,
   LAYER_STATE_TOKEN_ALPHABET,
   LAYER_STATE_TOKEN_RESERVATIONS,
-  LayerStateCoordinator,
   REGISTERED_LAYER_IDS,
   SHARE_TRACKING_RESTORE_POLICIES,
   createDefaultLayerState,
@@ -24,8 +24,11 @@ import {
   validateLayerStateAllocations,
   validateLayerStateRegistry,
 } from './layerState.js';
+import { LayerStateCoordinator } from './layerStateCoordinator.js';
 import radioLayer from './radio.js';
 import { stampInitialShareGesture } from '../navigationPolicy.js';
+import { MAX_SINCE_DAYS } from '../layers/streetLevel/policy.js';
+import { SINCE_STOPS } from '../ui/streetLevelPresentation.js';
 
 function deferred() {
   let resolve;
@@ -197,6 +200,26 @@ function encode(state) {
   return params.toString();
 }
 
+test('deployed fork links retain P25 and surveillance identities beside incoming layers', () => {
+  const saved = decodeLayerStateParams(new URLSearchParams(
+    'v=2&l=05.04.0.3.4&lo=05.h.24',
+  ));
+  assert.deepEqual(saved.enabledLayerIds, [
+    'deflock-cameras', 'eff-alpr', 'eff-body-cameras',
+    'eff-camera-registries', 'p25-events',
+  ]);
+  assert.equal(saved.options['p25-events'].hours, 24);
+  const incoming = decodeLayerStateParams(new URLSearchParams(
+    'v=2&l=06.07.08&lo=06.m.0',
+  ));
+  assert.deepEqual(incoming.enabledLayerIds, [
+    'air-quality', 'gnss-integrity', 'street-level',
+  ]);
+  assert.equal(incoming.options['street-level'].mapillary, false);
+  assert.deepEqual(decodeLayerStateParams(new URLSearchParams(encode(saved))), saved);
+  assert.deepEqual(decodeLayerStateParams(new URLSearchParams(encode(incoming))), incoming);
+});
+
 test('P25 rolling and custom windows survive share links and stored preferences', () => {
   for (const options of [
     { windowMode: 'rolling', hours: 24, from: null, until: null },
@@ -222,8 +245,8 @@ test('P25 rolling and custom windows survive share links and stored preferences'
 
 test('production registry is exact, canonical, and rejects incomplete contracts', async () => {
   assert.equal(validateLayerStateRegistry(), true);
-  assert.equal(REGISTERED_LAYER_IDS.length, 42);
-  assert.equal(new Set(REGISTERED_LAYER_IDS).size, 42);
+  assert.equal(REGISTERED_LAYER_IDS.length, 45);
+  assert.equal(new Set(REGISTERED_LAYER_IDS).size, 45);
   assert.ok(REGISTERED_LAYER_IDS.includes('transit'));
   assert.deepEqual(REGISTERED_LAYER_IDS, [...REGISTERED_LAYER_IDS].sort());
   assert.deepEqual(LEGACY_LAYER_STATE_TOKENS, {
@@ -262,7 +285,7 @@ test('production registry is exact, canonical, and rejects incomplete contracts'
   for (const [id, token] of Object.entries(LEGACY_LAYER_STATE_TOKENS)) {
     assert.equal(LAYER_STATE_TOKEN_RESERVATIONS[id], token);
   }
-  assert.equal(nextLayerStateToken(), '06');
+  assert.equal(nextLayerStateToken(), '09');
   assert.equal(
     nextLayerStateToken({ ...LEGACY_LAYER_STATE_TOKENS, alpha: '0', bravo: '3' }),
     '4',
@@ -2432,23 +2455,74 @@ test('wind appearance shares round trip while old links retain weather defaults'
   assert.deepEqual(invalid.options.wind, defaults);
 });
 
-test('observed weather round trips product and opacity without persisting historical playback', () => {
+test('observed weather round trips product and presets without persisting historical playback', () => {
   const state = normalizeLayerState({
     enabledLayerIds: ['weather-radar', 'weather-satellite'],
     options: {
       'weather-radar': { opacity: 'light', play: true },
-      'weather-satellite': { product: 'clouds', opacity: 'light', step: -1 },
+      'weather-satellite': {
+        product: 'clouds',
+        opacity: 'light',
+        infrared: 'filtered',
+        step: -1,
+      },
     },
   });
   const params = new URLSearchParams(encode(state));
   const decoded = decodeLayerStateParams(params);
   assert.deepEqual(decoded, state);
   assert.equal(state.options['weather-satellite'].product, 'clouds');
+  assert.equal(state.options['weather-satellite'].opacity, 'light');
+  assert.equal(state.options['weather-satellite'].infrared, 100);
   assert.equal(Object.hasOwn(state.options['weather-radar'], 'play'), false);
 });
 
-test('satellite infrared display mode round trips and invalid or absent values use filtered', () => {
-  for (const infrared of ['full', 'filtered', undefined, 'invalid']) {
+test('satellite filter strength percentages round-trip and legacy mode codes remain readable', () => {
+  const state = normalizeLayerState({
+    enabledLayerIds: ['weather-satellite'],
+    options: { 'weather-satellite': { infrared: 53, opacity: 'light' } },
+  });
+  const params = encodeLayerStateParams(
+    new URLSearchParams([['v', '2']]),
+    state,
+  );
+  assert.deepEqual(decodeLayerStateParams(params), state);
+  assert.equal(state.options['weather-satellite'].infrared, 53);
+  assert.equal(state.options['weather-satellite'].opacity, 'light');
+  for (const [legacy, expected] of [
+    ['f', 100],
+    ['a', 0],
+  ]) {
+    const decoded = decodeLayerStateParams(
+      new URLSearchParams(`v=2&l=o&lo=o.i.${legacy}`),
+    );
+    assert.equal(decoded.options['weather-satellite'].infrared, expected);
+  }
+  for (const [legacy, expected] of [
+    ['filtered', 100],
+    ['full', 0],
+  ]) {
+    const normalized = normalizeLayerState({
+      enabledLayerIds: ['weather-satellite'],
+      options: { 'weather-satellite': { infrared: legacy } },
+    });
+    assert.equal(normalized.options['weather-satellite'].infrared, expected);
+  }
+  const invalid = normalizeLayerState({
+    enabledLayerIds: ['weather-satellite'],
+    options: { 'weather-satellite': { infrared: 101 } },
+  });
+  assert.equal(invalid.options['weather-satellite'].infrared, 100);
+});
+
+test('satellite cloud filter round trips and invalid or absent values default to Clouds only', () => {
+  for (const [infrared, expected] of [
+    ['full', 0],
+    ['filtered', 100],
+    [53, 53],
+    [undefined, 100],
+    ['invalid', 100],
+  ]) {
     const state = normalizeLayerState({
       enabledLayerIds: ['weather-satellite'],
       options: {
@@ -2464,10 +2538,7 @@ test('satellite infrared display mode round trips and invalid or absent values u
       decodeLayerStateParams(new URLSearchParams(encode(state))),
       state,
     );
-    assert.equal(
-      state.options['weather-satellite'].infrared,
-      infrared === 'full' ? 'full' : 'filtered',
-    );
+    assert.equal(state.options['weather-satellite'].infrared, expected);
     assert.equal(
       Object.hasOwn(state.options['weather-satellite'], 'step'),
       false,
@@ -2649,6 +2720,23 @@ test('the recent-imagery split is share-link only: never stored locally, and a s
   );
 });
 
+test('GNSS interference uses token 07 without colliding with other digit tokens', () => {
+  const decoded = decodeLayerStateParams(new URLSearchParams('v=2&l=07.2.1'));
+  assert.deepEqual(decoded.enabledLayerIds, [
+    'fire-perimeters',
+    'gnss-integrity',
+    'recent-imagery',
+  ]);
+  assert.equal(
+    LAYER_STATE_REGISTRY.find(({ id }) => id === 'gnss-integrity').token,
+    '07',
+  );
+  assert.deepEqual(
+    decodeLayerStateParams(new URLSearchParams(encode(decoded))),
+    decoded,
+  );
+});
+
 test('fire perimeters uses digit 2 without colliding with wind or recent imagery', () => {
   const decoded = decodeLayerStateParams(new URLSearchParams('v=2&l=2.k.1'));
   assert.deepEqual(decoded.enabledLayerIds, [
@@ -2664,4 +2752,142 @@ test('fire perimeters uses digit 2 without colliding with wind or recent imagery
     decodeLayerStateParams(new URLSearchParams(encode(decoded))),
     decoded,
   );
+});
+
+/** Street Level options decoded from a v2 link with these `lo` assignments. */
+function streetLevelOptions(lo) {
+  const params = new URLSearchParams([
+    ['v', '2'],
+    ['l', '06'],
+  ]);
+  if (lo) params.set('lo', lo);
+  return decodeLayerStateParams(params).options['street-level'];
+}
+
+test('Street Level: every option round-trips through a share link and stored state', () => {
+  const state = createDefaultLayerState();
+  state.enabledLayerIds = ['street-level'];
+  state.options['street-level'] = {
+    mapillary: false,
+    providerSwitches: '',
+    pano: 'flat',
+    sinceDays: MAX_SINCE_DAYS,
+  };
+  const decoded = decodeLayerStateParams(new URLSearchParams(encode(state)));
+  assert.deepEqual(decoded.options['street-level'], {
+    mapillary: false,
+    providerSwitches: '',
+    pano: 'flat',
+    sinceDays: MAX_SINCE_DAYS,
+  });
+  assert.deepEqual(
+    parseStoredLayerState(serializeStoredLayerState(state)).options[
+      'street-level'
+    ],
+    state.options['street-level'],
+  );
+});
+
+test('Street Level: the link codec accepts exactly the windows the filter keeps', () => {
+  // A window past MAX_SINCE_DAYS reads as "any date".
+  assert.equal(
+    streetLevelOptions(`06.s.${MAX_SINCE_DAYS}`).sinceDays,
+    MAX_SINCE_DAYS,
+  );
+  assert.equal(streetLevelOptions(`06.s.${MAX_SINCE_DAYS + 1}`).sinceDays, 0);
+  // Every SINCE slider stop survives, the LAST 10 YEARS one included.
+  for (const { days } of SINCE_STOPS)
+    assert.equal(streetLevelOptions(`06.s.${days}`).sinceDays, days);
+  assert.equal(streetLevelOptions('06.s.3652').sinceDays, 3652);
+});
+
+test('Street Level: a link without the provider switches keeps Mapillary on and Street View off', () => {
+  assert.deepEqual(streetLevelOptions(''), {
+    mapillary: true,
+    providerSwitches: '',
+    pano: 'all',
+    sinceDays: 0,
+  });
+  // Street View rides the shared provider-switch field, off unless lit.
+  assert.equal(streetLevelOptions('06.r.google-1').providerSwitches, 'google-1');
+  assert.equal(
+    createDefaultLayerState().options['street-level'].providerSwitches,
+    '',
+  );
+  assert.equal(streetLevelOptions('06.p.f').mapillary, true);
+  assert.equal(streetLevelOptions('06.m.0').mapillary, false);
+  assert.equal(
+    createDefaultLayerState().options['street-level'].mapillary,
+    true,
+  );
+});
+
+test('explicit provider switches reach durable state without adopting unrelated live switches', () => {
+  const manager = new DataLayerManager({});
+  const providers = new Map([
+    ['mapillary', true],
+    ['alpha', true],
+    ['beta', true],
+  ]);
+  const filter = { pano: 'all', sinceDays: 0 };
+  for (const id of REGISTERED_LAYER_IDS) {
+    manager.register(
+      id === 'street-level'
+        ? {
+            ...fakeLayer(id),
+            getParams: () => encodeParams({ providers, filter }),
+            setParams(params) {
+              const decoded = decodeParams(params, {
+                providerIds: providers.keys(),
+                filter,
+              });
+              for (const [id, on] of decoded.providers) providers.set(id, on);
+              return true;
+            },
+          }
+        : fakeLayer(id),
+    );
+  }
+  manager.finalizeRegistrations(LAYER_STATE_REGISTRY);
+  const storage = memoryStorage();
+  const coordinator = new LayerStateCoordinator(manager, shareSink(), {
+    storage,
+  });
+  try {
+    providers.set('beta', false); // Passive state does not belong to the next action.
+    assert.equal(
+      manager.setLayerParams(
+        'street-level',
+        { alpha: false },
+        { origin: 'user' },
+      ),
+      true,
+    );
+    let saved = parseStoredLayerState(storage.getItem(LAYER_STATE_STORAGE_KEY));
+    assert.equal(saved.options['street-level'].providerSwitches, 'alpha-0');
+    const shared = decodeLayerStateParams(new URLSearchParams(encode(saved)));
+    const restored = decodeParams(shared.options['street-level'], {
+      providerIds: ['beta', 'alpha'],
+      filter,
+    });
+    assert.deepEqual([...restored.providers], [['alpha', false]]);
+    manager.setLayerParams('street-level', { beta: true }, { origin: 'user' });
+    saved = parseStoredLayerState(storage.getItem(LAYER_STATE_STORAGE_KEY));
+    assert.equal(
+      saved.options['street-level'].providerSwitches,
+      'alpha-0*beta-1',
+    );
+    manager.setLayerParams(
+      'street-level',
+      { alpha: true },
+      { origin: 'local-restore' },
+    );
+    saved = parseStoredLayerState(storage.getItem(LAYER_STATE_STORAGE_KEY));
+    assert.equal(
+      saved.options['street-level'].providerSwitches,
+      'alpha-0*beta-1',
+    );
+  } finally {
+    coordinator.destroy();
+  }
 });

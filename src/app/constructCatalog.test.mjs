@@ -5,6 +5,7 @@ import { createApplicationCatalog } from './constructCatalog.js';
 import { createStandaloneLayerSources } from '../standalone/layerSources.js';
 import { catalogControlServices } from './catalog.js';
 import { LayerLifecycle } from '../data/lifecycle.js';
+import { fakeStreetLevelProvider } from '../testSupport/streetLevelFakes.mjs';
 
 function fixtureSources(ids, calls) {
   const sources = createStandaloneLayerSources();
@@ -39,7 +40,7 @@ test('catalogs construct distinct layers and classification from their supplied 
     signal: b.signal,
     surface: fixtureSurface(b.signal),
   });
-  assert.equal(first.layers.length, 43);
+  assert.equal(first.layers.length, 46);
   assert.ok(first.get('p25-events'));
   assert.ok(first.get('deflock-cameras'));
   for (const id of ['eff-alpr', 'eff-drones', 'eff-video-analytics'])
@@ -63,6 +64,7 @@ test('catalogs construct distinct layers and classification from their supplied 
       '2026-09-21T12:00:00.000Z',
     );
   assert.ok(first.get('fire-perimeters'));
+  assert.ok(first.get('gnss-integrity'));
   assert.ok(first.get('transit'));
   const order = first.layers.map(({ id }) => id);
   assert.deepEqual(
@@ -120,7 +122,7 @@ test('invalid or already cancelled construction fails before classification can 
   assert.throws(
     () =>
       createApplicationCatalog({
-        sources: {},
+        sources: { flights: {} },
         signal: lifetime.signal,
         surface: fixtureSurface(lifetime.signal),
       }),
@@ -144,3 +146,53 @@ function fixtureSurface(signal) {
     eventTarget: null,
   });
 }
+
+test('Mapillary can be omitted or replaced without changing catalog membership', (t) => {
+  const lifetime = new AbortController();
+  t.after(() => lifetime.abort());
+  const sources = fixtureSources([], []);
+  delete sources.mapillary;
+  const options = {
+    sources,
+    signal: lifetime.signal,
+    surface: fixtureSurface(lifetime.signal),
+  };
+  const catalog = createApplicationCatalog(options);
+  assert.equal(catalog.layers.length, 46);
+  assert.deepEqual(catalog.get('street-level').providerIds, []);
+  assert.equal(
+    catalogControlServices(catalog).streetLevelLayer,
+    catalog.get('street-level'),
+  );
+  assert.match(
+    catalog.get('street-level').getUIState().coverage.hint,
+    /No street-level imagery providers/,
+  );
+  const provider = fakeStreetLevelProvider({
+    id: 'example',
+    pickPrefix: 'example:',
+  });
+  const replacement = createApplicationCatalog({
+    ...options,
+    streetLevelProviders: [provider],
+  });
+  assert.deepEqual(replacement.get('street-level').providerIds, ['example']);
+  assert.deepEqual(replacement.metadata, catalog.metadata);
+  assert.equal(provider.calls.activate, 0, 'construction must not acquire');
+  assert.deepEqual(
+    createApplicationCatalog({
+      ...options,
+      sources: fixtureSources([], []),
+      streetLevelProviders: [],
+    }).get('street-level').providerIds,
+    [],
+  );
+  assert.throws(
+    () =>
+      createApplicationCatalog({
+        ...options,
+        sources: { ...sources, mapillary: {} },
+      }),
+    /Mapillary source/,
+  );
+});

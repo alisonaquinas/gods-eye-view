@@ -1,4 +1,5 @@
 [
+  ["air-quality", "08"],
   ["ais-live-vessels", "a"],
   ["alpr-cameras", "p"],
   ["bhote-koshi-2026", "h"],
@@ -22,6 +23,7 @@
   ["eff-video-analytics", "03"],
   ["fire-perimeters", "2"],
   ["flights", "f"],
+  ["gnss-integrity", "07"],
   ["local-dams", "q"],
   ["local-datacenters", "d"],
   ["local-firms", "w"],
@@ -33,6 +35,7 @@
   ["recent-imagery", "1"],
   ["rocket-launches", "x"],
   ["satellites", "s"],
+  ["street-level", "06"],
   ["telegeography-submarine-cables", "u"],
   ["traffic", "t"],
   ["transit", "j"],

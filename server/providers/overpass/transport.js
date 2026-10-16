@@ -2,6 +2,7 @@ import { cachedReadOnlyFetch as fetch } from '../common/api-cache.js';
 import {
   OVERPASS_MAX_RESPONSE_BYTES,
   resolveOverpassUpstreams,
+  resolveOverpassUpstreamTag,
   OVERPASS_USER_AGENT,
   OVERPASS_TIMEOUT_MS,
 } from './constants.js';
@@ -188,6 +189,9 @@ async function fetchOverpassPayload(
         contentType: 'application/json',
         // Never retain a secret-bearing endpoint in cache or response metadata.
         endpoint: 'configured',
+        // Which configured instance produced this, as a hash rather than a URL,
+        // so a cached answer is not reused after the operator repoints.
+        upstreams: resolveOverpassUpstreamTag(),
         rateLimited: false,
       };
     } catch {

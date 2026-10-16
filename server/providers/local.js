@@ -21,9 +21,11 @@ import { aisLiveProxy } from './vessels/ais-live.js';
 import { trackBackfillProxies } from './aircraft/tracks.js';
 import { openAiRealtimeProxy } from './openai.js';
 import { googlePlacesContextProxy } from './places.js';
+import { mapillaryProxy } from './mapillary.js';
 import { keySetupEndpoint } from '../standalone/key-setup.js';
 import { weatherProxy } from './weather.js';
 import { firePerimetersProxy } from './firePerimeters.js';
+import { gnssIntegrityProxy } from './gnssIntegrity.js';
 import { cycloneProxy } from './cyclones.js';
 import { windProxy } from './wind.js';
 import { effAtlasProxy } from './effAtlas.js';
@@ -31,8 +33,11 @@ import { deflockProxy } from './deflock.js';
 import { p25EventsProxy } from './p25-events.js';
 import { locationsProxy } from './locations.js';
 
-/** Construct the local provider plugins in their established order. */
-function localProviderPlugins() {
+/**
+ * Construct the local provider plugins in their established order.
+ * `realtime` configures the voice session token endpoint.
+ */
+function localProviderPlugins({ realtime } = {}) {
   return [
     apiCachePlugin(),
     openSkyProxy(),
@@ -55,16 +60,18 @@ function localProviderPlugins() {
     adsbLolProxy(),
     aisLiveProxy(),
     trackBackfillProxies(),
-    openAiRealtimeProxy(),
+    openAiRealtimeProxy({ realtime }),
     googlePlacesContextProxy(),
     windProxy(),
     weatherProxy(),
     cycloneProxy(),
+    mapillaryProxy(),
     firePerimetersProxy(),
     effAtlasProxy(),
     deflockProxy(),
     p25EventsProxy(),
     locationsProxy(),
+    gnssIntegrityProxy(),
     keySetupEndpoint(),
   ];
 }
@@ -86,6 +93,9 @@ export { LL2_CACHE_TTL_MS, launchLibraryRequestHeaders } from './space.js';
 export { googlePlacesContextProxy } from './places.js';
 export { googleServerApiKey } from './places.js';
 export { keylessGooglePlacesResponse } from './places.js';
+export { keylessGoogleGeocodeResponse } from './places.js';
+export { validateGeocodeAddress } from './places.js';
+export { geocodeBounds } from './places.js';
 export { adsbLolFallbackAnchor } from './aircraft/opensky.js';
 export { readResponseTextCapped } from './common/http.js';
 export { readResponseJsonCapped } from './common/http.js';

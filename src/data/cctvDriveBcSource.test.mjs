@@ -21,6 +21,7 @@ import {
   DEFAULT_GEORGIA_MAX_SOURCES,
   DEFAULT_CALGARY_MAX_SOURCES,
   DEFAULT_DELDOT_MAX_SOURCES,
+  DEFAULT_CATALONIA_MAX_SOURCES,
   DRIVEBC_WEBCAMS_URL,
 } from '../../server/providers/cctv/constants.js';
 import {
@@ -239,6 +240,7 @@ test('all default camera packs retain coverage within the catalog cap', () => {
     DEFAULT_TARKTEE_MAX_SOURCES,
     DEFAULT_NSW_MAX_SOURCES,
     DEFAULT_GEORGIA_MAX_SOURCES,
+    DEFAULT_CATALONIA_MAX_SOURCES,
     DEFAULT_CALGARY_MAX_SOURCES,
     DEFAULT_DELDOT_MAX_SOURCES,
     1,
