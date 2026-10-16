@@ -1,3 +1,4 @@
+import { renderApdLinks } from './apdSdrLinks.js';
 const localInput = (value) => {
   const date = new Date(value);
   return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
@@ -57,7 +58,7 @@ export function createP25EventsControls(container, apply) {
       <h4></h4><p class="p25-event-time"></p>
       <div class="p25-organizations" role="group" aria-label="Departments and organizations" hidden></div>
       <p class="p25-location"></p>
-      <p class="p25-report"></p><p class="p25-provenance"></p>
+      <p class="p25-report"></p><p class="p25-provenance"></p><div class="p25-apd-links"></div>
     </section>
     <a class="p25-source" href="https://sdr.alisonaquinas.pro/p25" target="_blank" rel="noopener noreferrer">Open SDR event log ↗</a>`;
   container.appendChild(root);
@@ -176,6 +177,7 @@ export function createP25EventsControls(container, apply) {
           event.timestamp,
           Boolean(event.location),
           event.organizations,
+          event.apdLinks,
         ]),
       );
       const list = root.querySelector('.p25-event-list');
@@ -191,6 +193,12 @@ export function createP25EventsControls(container, apply) {
           organizations.className = 'p25-organizations';
           renderOrganizations(organizations, event.organizations);
           button.appendChild(organizations);
+          if (event.apdLinks?.length) {
+            const summary = doc.createElement('span');
+            summary.className = 'p25-apd-summary';
+            summary.textContent = `APD records: ${event.apdLinks.length}${event.apdLinks.some((l) => l.status === 'POSSIBLE' || l.stale) ? ' · Review needed' : ' · Reviewed matches'}`;
+            button.appendChild(summary);
+          }
           list.appendChild(button);
         }
       }
@@ -209,6 +217,10 @@ export function createP25EventsControls(container, apply) {
       detail.hidden = !selected;
       if (selected) {
         detail.querySelector('h4').textContent = selected.title;
+        renderApdLinks(
+          detail.querySelector('.p25-apd-links'),
+          selected.apdLinks,
+        );
         renderOrganizations(
           detail.querySelector('.p25-organizations'),
           selected.organizations,

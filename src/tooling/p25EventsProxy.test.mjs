@@ -8,7 +8,7 @@ function setup(fetchImpl) {
   p25EventsProxy({ fetchImpl }).configureServer({
     middlewares: {
       use(_path, fn) {
-        handler = fn;
+        if (_path === '/api/p25-events') handler = fn;
       },
     },
   });

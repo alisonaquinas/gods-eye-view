@@ -100,6 +100,21 @@ export function normalizeP25Event(row, bounds) {
       row.rawText.split('\n').find((line) => line.trim()) || `Event ${row.id}`,
     location: p25Location(row.location),
     organizations: p25Organizations(row.organizations),
+    apdLinks: Array.isArray(row.apdLinks)
+      ? row.apdLinks.filter(
+          (link) =>
+            ['CONFIRMED', 'POSSIBLE'].includes(link?.status) &&
+            typeof link.reason === 'string' &&
+            typeof link.stale === 'boolean' &&
+            typeof link.incident?.incidentNumber === 'string' &&
+            typeof link.incident?.officialUrl === 'string' &&
+            Array.isArray(link.incident?.offenses) &&
+            link.incident.offenses.every(
+              (o) => typeof o?.offense === 'string',
+            ) &&
+            typeof link.incident?.review?.status === 'string',
+        )
+      : [],
     linkCount: Number(row.linkCount) || 0,
   };
 }

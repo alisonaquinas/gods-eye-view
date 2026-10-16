@@ -1,3 +1,4 @@
+import { apdLinksHandler } from './apd-links.js';
 import { readResponseJsonCapped } from './common/http.js';
 import { clientKey, makeRateLimiter } from './common/rate-limit.js';
 
@@ -6,6 +7,7 @@ const QUERY = `query GevP25Events($filter: EventLogFilter, $before: ID) {
     total next entries {
       id timestamp rawText linkCount
       organizations { id name aliases }
+      apdLinks { status reason stale incident { id incidentNumber available officialUrl review { status } offenses { objectId offense } } }
       location { latitude longitude label precision source }
     }
   }
@@ -118,6 +120,7 @@ export function p25EventsProxy({ fetchImpl = globalThis.fetch } = {}) {
   }
   const install = ({ middlewares }) => {
     middlewares.use('/api/p25-events', handler);
+    middlewares.use('/api/apd-links', apdLinksHandler({ fetchImpl }));
   };
   return {
     name: 'p25-events',

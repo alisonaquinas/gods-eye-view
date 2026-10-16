@@ -489,6 +489,7 @@
       "src/data/feedState.js",
       "src/data/layerSnapshot.js",
       "src/ui/p25EventsControls.js",
+      "src/ui/apdSdrLinks.js",
       "src/ui/atlantaCrimeControls.js",
       "src/layers/atlantaCrime/model.js",
       "src/data/effAtlas.js"
@@ -722,6 +723,7 @@
       "src/ui/localSdrPresentation.js",
       "src/data/cameraArrival.js",
       "src/ui/p25EventsControls.js",
+      "src/ui/apdSdrLinks.js",
       "src/ui/atlantaCrimeControls.js",
       "src/layers/atlantaCrime/model.js",
       "src/data/effAtlas.js"
@@ -2325,6 +2327,7 @@
       "src/layers/airQuality/model.js",
       "src/layers/airQuality/source.js",
       "src/ui/p25EventsControls.js",
+      "src/ui/apdSdrLinks.js",
       "src/ui/atlantaCrimeControls.js",
       "src/layers/atlantaCrime/model.js",
       "src/app/layers/p25Events.js",

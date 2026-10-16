@@ -1,3 +1,4 @@
+import { createApdSdrLinks } from './apdSdrLinks.js';
 import {
   ATLANTA_CRIME_COLORS,
   atlantaCrimeWindow,
@@ -61,13 +62,16 @@ export function createAtlantaCrimeControls(container, apply) {
       <div class="atlanta-crime-list"></div>
       <button type="button" class="data-toggle-chip" data-action="more" hidden>Show more records</button>
     </details>
-    <section class="atlanta-crime-selected" aria-label="Selected APD record" hidden><h4></h4><p></p></section>
+    <section class="atlanta-crime-selected" aria-label="Selected APD record" hidden><h4></h4><p></p><div class="atlanta-crime-sdr-links"></div></section>
     <p class="atlanta-crime-note">APD updates hourly; reports can be delayed, revised or removed. Current boundaries are from 2025.</p>
     <div class="atlanta-crime-links">
       <a href="https://atlantapd.maps.arcgis.com/apps/dashboards/af4a3506502f4e9fa81b2b3f63c61397" target="_blank" rel="noopener noreferrer">APD dashboard</a>
       <a href="https://opendata.atlantapd.org/" target="_blank" rel="noopener noreferrer">APD Open Data</a>
     </div>`;
   container.appendChild(root);
+  const sdrLinks = createApdSdrLinks(
+    root.querySelector('.atlanta-crime-sdr-links'),
+  );
   const form = root.querySelector('form'),
     choice = form.elements.window;
   const from = form.elements.from,
@@ -166,7 +170,10 @@ export function createAtlantaCrimeControls(container, apply) {
     update(value) {
       root.hidden = !value;
       current = value;
-      if (!value) return;
+      if (!value) {
+        sdrLinks.update(null);
+        return;
+      }
       const nextSignature = JSON.stringify(value.params);
       if (signature !== nextSignature) {
         signature = nextSignature;
@@ -250,6 +257,9 @@ export function createAtlantaCrimeControls(container, apply) {
       const selected = value.entries.find((entry) => entry.id === selectedId);
       const detail = root.querySelector('.atlanta-crime-selected');
       detail.hidden = !selected;
+      sdrLinks.update(
+        selected && !selected.dateOnly ? selected.incident : null,
+      );
       if (selected) {
         detail.querySelector('h4').textContent = selected.title;
         detail.querySelector('p').textContent = [
@@ -272,6 +282,7 @@ export function createAtlantaCrimeControls(container, apply) {
       }
     },
     destroy() {
+      sdrLinks.destroy();
       abort.abort();
       current = null;
       root.remove();

@@ -140,3 +140,41 @@
   outline: 2px solid var(--accent, #5edbd5);
   outline-offset: 2px;
 }
+
+.p25-apd-links,
+.atlanta-crime-sdr-links {
+  margin-top: 16px;
+  border-top: 1px solid var(--glass-border, #596676);
+  padding-top: 12px;
+  overflow-wrap: anywhere;
+}
+.p25-apd-links h5,
+.atlanta-crime-sdr-links h5 {
+  font: inherit;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.apd-reference {
+  margin: 12px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--glass-border, #596676);
+}
+.apd-reference strong {
+  display: block;
+  font-weight: 500;
+}
+.apd-reference a {
+  display: inline-block;
+  color: var(--accent, #5edbd5);
+  text-underline-offset: 3px;
+  padding: 6px 0;
+}
+.apd-reference p {
+  margin: 6px 0;
+  color: #c0cbd8;
+}
+.p25-apd-summary {
+  display: block;
+  margin-top: 6px;
+  color: var(--accent, #5edbd5);
+}
