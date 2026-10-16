@@ -331,5 +331,19 @@ test(
     assert.equal((await stores[0].claim('lease', 'third', 100)).state, 'wait');
     assert.equal(await stores[1].finish('lease', 'new', 'new', 100), true);
     assert.equal((await stores[0].claim('lease', 'third', 100)).value, 'new');
+    assert.equal(await stores[0].read('lease'), 'new');
+    assert.equal(await stores[0].claimRefresh('lease', 'refresh', 100), true);
+    assert.equal(await stores[1].claimRefresh('lease', 'other', 100), false);
+    assert.equal(
+      await stores[1].read('lease'),
+      'new',
+      'readers retain the snapshot during refresh',
+    );
+    assert.equal(await stores[0].finish('lease', 'refresh', '', 0), true);
+    assert.equal(
+      await stores[1].read('lease'),
+      'new',
+      'failed refresh preserves the snapshot',
+    );
   },
 );

@@ -12,6 +12,7 @@ export const HLS_LIMITS = Object.freeze({
   idleMs: 15000,
   timeoutMs: 10000,
   readyMs: 12000,
+  resolveMs: 60000,
 });
 
 /** Refuse redirects; count actual streamed bytes, including chunked responses. */
@@ -170,7 +171,23 @@ export function createHlsPuller({
     });
   const poll = async (entry) => {
     try {
-      let base = entry.chunklistUrl || entry.url;
+      if (
+        entry.resolveUrl &&
+        (!entry.resolvedUrl ||
+          Date.now() - entry.resolvedAt >= limits.resolveMs)
+      ) {
+        const signal = AbortSignal.any([
+          entry.controller.signal,
+          AbortSignal.timeout(limits.timeoutMs),
+        ]);
+        const resolved = await entry.resolveUrl(entry.url, signal);
+        signal.throwIfAborted();
+        entry.resolvedUrl = sameOriginHlsUrl(resolved, entry.url);
+        entry.resolvedAt = Date.now();
+        entry.chunklistUrl = null;
+      }
+      const root = entry.resolvedUrl || entry.url;
+      let base = entry.chunklistUrl || root;
       let text = (await read(entry, base, limits.playlistBytes)).toString(
         'utf8',
       );
@@ -181,17 +198,25 @@ export function createHlsPuller({
           .find((line) => line && !line.startsWith('#'));
         if (!variant || !text.includes('#EXT-X-STREAM-INF:'))
           throw new Error('Missing HLS variant');
-        base = sameOriginHlsUrl(variant, entry.url);
+        base = sameOriginHlsUrl(variant, root);
         text = (await read(entry, base, limits.playlistBytes)).toString('utf8');
       }
       entry.chunklistUrl = base;
       const segments = parseHlsMedia(text, base, limits.segments);
+      const identity = (uri) => {
+        if (!entry.resolveUrl) return uri;
+        // Renewing an access token does not turn an already buffered segment
+        // into new footage or signal that the agency sequence restarted.
+        const url = new URL(uri);
+        url.searchParams.delete('token');
+        return url.href;
+      };
       const newest = segments.at(-1)?.seq ?? -1;
       const restarted =
         newest < entry.upstreamNewest ||
         segments.some((segment) => {
           const prior = entry.upstream.get(segment.seq);
-          return prior && prior !== segment.uri;
+          return prior && prior !== identity(segment.uri);
         });
       if (restarted) {
         entry.upstream.clear();
@@ -226,7 +251,7 @@ export function createHlsPuller({
           discontinuity: segment.discontinuity || entry.pendingDiscontinuity,
         });
         entry.pendingDiscontinuity = false;
-        entry.upstream.set(segment.seq, segment.uri);
+        entry.upstream.set(segment.seq, identity(segment.uri));
         while (entry.upstream.size > limits.segments * 2)
           entry.upstream.delete(entry.upstream.keys().next().value);
         entry.bytes += body.length;
@@ -234,6 +259,7 @@ export function createHlsPuller({
       entry.failures = 0;
     } catch {
       entry.chunklistUrl = null;
+      entry.resolvedUrl = null;
       entry.failures++;
       if (entry.failures >= 3) {
         stop(entry.cameraId, entry.token);
@@ -248,7 +274,12 @@ export function createHlsPuller({
       }
     }
   };
-  const ensure = async (cameraId, url, leaseId = 'legacy') => {
+  const ensure = async (
+    cameraId,
+    url,
+    leaseId = 'legacy',
+    { resolveUrl } = {},
+  ) => {
     if (closed) throw new Error('HLS service closed');
     sameOriginHlsUrl(url, url);
     let entry = active.get(cameraId);
@@ -266,6 +297,9 @@ export function createHlsPuller({
     entry = {
       cameraId,
       url,
+      resolveUrl,
+      resolvedUrl: null,
+      resolvedAt: 0,
       token: randomUUID(),
       controller: new AbortController(),
       segments: new Map(),

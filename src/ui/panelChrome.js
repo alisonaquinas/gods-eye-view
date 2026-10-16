@@ -435,6 +435,26 @@ export class PanelChrome {
         : this._rightPanelStack?.contains(panelEl)
           ? panelEl
           : null;
+    if (
+      explicit &&
+      !restore &&
+      !nextCollapsed &&
+      panelId === 'cctv-panel' &&
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(max-width: 720px)').matches
+    ) {
+      // Wait for the queued rail layout to restore and size the panels above
+      // CCTV before scrolling its header into the mobile viewport.
+      this._lifetime.frame(() =>
+        this._lifetime.frame(() => {
+          if (!panelEl.classList.contains('collapsed'))
+            panelEl.querySelector('.panel-header')?.scrollIntoView({
+              block: 'nearest',
+              inline: 'nearest',
+            });
+        }),
+      );
+    }
     const priorLeftOwner = this._panelLayout._leftStackPreferredPanelId;
     const priorRightOwner = this._panelLayout._rightStackPreferredPanelId;
     if (explicit && !restore && !nextCollapsed && leftOwnerPanel) {

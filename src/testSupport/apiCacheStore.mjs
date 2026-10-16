@@ -3,6 +3,15 @@ export function apiCacheStore({ now = Date.now } = {}) {
   const entries = new Map();
   const locks = new Map();
   return {
+    async read(key) {
+      const entry = entries.get(key);
+      return entry?.until > now() ? entry.value : null;
+    },
+    async claimRefresh(key, token, leaseMs) {
+      if (locks.get(key)?.until > now()) return false;
+      locks.set(key, { token, until: now() + leaseMs });
+      return true;
+    },
     async claim(key, token, leaseMs) {
       const entry = entries.get(key);
       if (entry?.until > now())
@@ -13,7 +22,7 @@ export function apiCacheStore({ now = Date.now } = {}) {
     },
     async finish(key, token, value, ttlMs) {
       if (locks.get(key)?.token !== token) return false;
-      entries.set(key, { value, until: now() + ttlMs });
+      if (ttlMs > 0) entries.set(key, { value, until: now() + ttlMs });
       locks.delete(key);
       return true;
     },

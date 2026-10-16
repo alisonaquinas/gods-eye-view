@@ -504,12 +504,21 @@ export function normalizeSourceItem(item) {
     // Per-camera attribution for feeds a partner supplies inside a pack
     // (DriveBC: TransLink, city cameras). Shown beside the provider.
     credit: String(item.credit || '').trim(),
+    websiteUrl: /^https:\/\/511ga\.org\/map#camera-[1-9]\d{0,9}$/.test(
+      item.websiteUrl || '',
+    )
+      ? item.websiteUrl
+      : '',
     // Unselected-label code: the pack's explicit short name, else the feed's
     // name, else the id.
     code: cameraDisplayCode(
       item.code || String(item.name || '').toUpperCase() || item.id || '',
     ),
     sourceKind: String(item.sourceKind || item.kind || 'configured'),
+    ...(item.sourceKind === 'georgia-511' &&
+    /^[1-9]\d{0,9}$/.test(String(item.georgiaImageId || ''))
+      ? { georgiaImageId: String(item.georgiaImageId) }
+      : {}),
     // Optional CAL badge input (cctv-v2 design §3b/§9.2, additive-only per the
     // global constraints — nothing else in this file changes): hand-authored
     // file/env catalog entries may declare poseSource:'curated' so the panel

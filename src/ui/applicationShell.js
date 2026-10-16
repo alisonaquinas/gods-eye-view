@@ -927,6 +927,7 @@ export class StyleManager extends ShellFacade {
     if (this._disposed) return false;
     const cameraId = activate();
     if (!cameraId) return false;
+    this.setPanelCollapsed('cctv-panel', false, { explicit: true });
     return this._runExplicitNavigation('camera', () => focus(cameraId));
   }
 
@@ -944,6 +945,7 @@ export class StyleManager extends ShellFacade {
         _cctvCoverageBtn: this._cctvCoverageBtn,
         _cctvEnableBtn: this._cctvEnableBtn,
         _cctvFocusBtn: this._cctvFocusBtn,
+        _cctvWebsiteLink: this._cctvWebsiteLink,
         _cctvFrame: this._cctvFrame,
         _cctvFrameWrap: this._cctvFrameWrap,
         _cctvVideo: this._cctvVideo,

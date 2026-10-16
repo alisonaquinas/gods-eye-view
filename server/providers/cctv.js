@@ -18,6 +18,7 @@ import {
 } from './cctv/constants.js';
 import { sanitizeCctvRangeHeader } from './cctv/range.js';
 import { createHlsPuller } from './cctv/stream.js';
+import { resolveGeorgiaStreamUrl } from './cctv/georgia.js';
 import { googleServerApiKey } from './places/google-key.js';
 export { CCTV_FRAME_FETCH_TIMEOUT_MS, fetchCctvImageFromUpstream };
 /**
@@ -131,6 +132,7 @@ export function cctvProxy({ sourceRoot = process.cwd() } = {}) {
 
   const installMiddleware = (server) => {
     server.httpServer?.on('close', () => {
+      getCctvSources.close();
       puller.shutdown();
     });
     server.middlewares.use('/api/cctv', async (req, res) => {
@@ -164,6 +166,7 @@ export function cctvProxy({ sourceRoot = process.cwd() } = {}) {
               poseSource: source.poseSource,
               license: source.license,
               credit: source.credit || '',
+              websiteUrl: source.websiteUrl || '',
               code: source.code || '',
               groundHeights: source.groundHeights || null,
             })),
@@ -263,7 +266,17 @@ export function cctvProxy({ sourceRoot = process.cwd() } = {}) {
               if (entry) puller.release(cameraId, leaseId);
             };
             try {
-              entry = await puller.ensure(cameraId, mediaUrl, leaseId);
+              entry = await puller.ensure(cameraId, mediaUrl, leaseId, {
+                resolveUrl:
+                  source?.sourceKind === 'georgia-511' && source.georgiaImageId
+                    ? (registeredUrl, signal) =>
+                        resolveGeorgiaStreamUrl(
+                          source.georgiaImageId,
+                          registeredUrl,
+                          signal,
+                        )
+                    : undefined,
+              });
               if (downstream.closed) {
                 cancelPending();
                 return;

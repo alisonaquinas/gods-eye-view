@@ -14,6 +14,8 @@ if tonumber(ARGV[3]) > 0 then redis.call('SET', KEYS[1], ARGV[2], 'PX', ARGV[3])
 redis.call('DEL', KEYS[2])
 return 1
 `;
+const READ = `return redis.call('GET', KEYS[1])`;
+const REFRESH = `return redis.call('SET', KEYS[2], ARGV[1], 'NX', 'PX', ARGV[2])`;
 
 /** One lazy connection per app; bounded commands never queue through outages. */
 export function createRedisCacheStore({ url, prefix }) {
@@ -64,6 +66,12 @@ export function createRedisCacheStore({ url, prefix }) {
     }
   }
   return {
+    async read(key) {
+      return evaluate(READ, key, []);
+    },
+    async claimRefresh(key, token, leaseMs) {
+      return Boolean(await evaluate(REFRESH, key, [token, leaseMs]));
+    },
     async claim(key, token, leaseMs) {
       const [state, value, ttl] = await evaluate(CLAIM, key, [token, leaseMs]);
       return { state, value, ttlMs: Number(ttl) };

@@ -25,10 +25,33 @@ function componentFunctionSource(fn) {
     .replace(/\(\s+/g, '(');
 }
 import assert from 'node:assert/strict';
+import { createSelection } from '../layers/cctv/selection.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as Cesium from 'cesium';
+
+test('reselecting the active camera reveals controls without rebuilding geometry or requesting a flight', () => {
+  const notices = [];
+  const record = { camera: { id: 'ga' }, activationDone: true };
+  const selection = createSelection({
+    state: { _activeCameraId: 'ga', _records: [record], _recordById: new Map([['ga', record]]) },
+    services: { activation: { CCTV_ACTIVATION_RESULT }, picking: {} },
+    parts: {
+      model: { cctvRecordNeedsActivation: () => false },
+      presentation: { notifyListeners: intent => notices.push(intent) },
+    },
+  });
+  assert.equal(selection.setActiveCamera('ga'), CCTV_ACTIVATION_RESULT.UNCHANGED);
+  assert.deepEqual(notices, [], 'background selection stays silent');
+  const focused = activateCctvCameraFromWorldClick('ga', id => selection.setActiveCamera(id, { explicitSelection: true }), {
+    dispatchEvent() { assert.fail('reselect must not fly or rebuild the projection'); },
+  });
+  assert.equal(focused, false);
+  assert.deepEqual(notices, [{ explicitSelection: true }]);
+  selection.setActiveCamera('missing', { explicitSelection: true });
+  assert.equal(notices.length, 1);
+});
 import cctvLayer, {
   CCTV_PROJECTION_OVERLAY_SOURCE_OPTIONS,
   _createCctvProjectionPlaneForTest,
@@ -978,11 +1001,11 @@ test('CCTV repeated in-world clicks dispatch focus only for the one real activat
   );
   assert.match(
     componentFunctionSource(cctvLayer.init),
-    /activateCctvCameraFromWorldClick\(cameraId, setActiveCamera\)/,
+    /activateCctvCameraFromWorldClick\(cameraId, \(id\) => setActiveCamera\(id, \{ explicitSelection: true \}\)/,
   );
   assert.match(
     componentFunctionSource(cctvLayer.init),
-    /activateCctvCameraFromWorldClick\(cardId, setActiveCamera\)/,
+    /activateCctvCameraFromWorldClick\(cardId, \(id\) => setActiveCamera\(id, \{ explicitSelection: true \}\)/,
   );
 });
 

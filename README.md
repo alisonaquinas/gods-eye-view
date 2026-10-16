@@ -478,6 +478,23 @@ URL play through a lazily loaded hls.js decoder shared by the monitor plane
 and panel. DelDOT uses its official HTTPS HLS catalog links. Disable that
 pack with `CCTV_DELDOT_ENABLED=0`.
 
+Georgia cameras also appear in **CCTV Mesh**. The current [511GA catalog](https://511ga.org/cctv)
+supplies snapshots and video; [GEMA-SOC's GDOT inventory](https://hub.arcgis.com/datasets/GEMA-SOC::gdot-live-traffic-cameras/explore)
+provides matching positions only. Cameras absent from 511GA are never added from
+GIS, including during outages. Select a camera and use **VIEW ON 511GA** to open
+its official camera page in a new tab. By default, up to 500 cameras nearest Georgia's
+regional centers load. Set `CCTV_GEORGIA_MAX_SOURCES` (1–5000) to change this,
+or `CCTV_GEORGIA_ENABLED=0` to disable the pack. The overall
+`CCTV_MAX_SOURCES` cap is shared with other regions and defaults to 4000 (maximum 5000).
+Sites still receive live snapshots when video is unavailable. Video access
+depends on the GDOT streaming host accepting requests from the server;
+the public playback-link flow does not guarantee a playable stream.
+The public camera list and position mapping are stored in Redis when configured,
+refreshed every 15 minutes after first use, and retained for up to 24 hours during
+outages. A successful refresh removes cameras no longer listed by 511GA.
+Custom file/env catalogs retain their existing behavior; use
+`CCTV_FORCE_AUSTIN=1` to include live packs alongside a custom catalog.
+
 The server allows two concurrent sessions. Each retains at most 12 segments
 and 24 MiB in memory; individual downloads are capped at 4 MiB with a ten
 second deadline. There are no segment files or ffmpeg processes. Redirects,
