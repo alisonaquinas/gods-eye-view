@@ -259,3 +259,27 @@ test('uncovered location kinds are unavailable rather than a completed no-match 
   assert.equal(f.calls.length, 1);
   assert.match(result.attempts.at(-1).reason, /No configured geocoder/);
 });
+
+test('resolver plugin starts a real Vite server and serves HTTP without returning the Connect app as a post hook', async () => {
+  const { createServer } = await import('vite');
+  const server = await createServer({
+    configFile: false,
+    appType: 'custom',
+    logLevel: 'silent',
+    server: { host: '127.0.0.1', port: 0 },
+    plugins: [
+      locationsProxy({ resolve: async () => ({ status: 'NO_MATCH' }) }),
+    ],
+  });
+  try {
+    await server.listen();
+    const port = server.httpServer.address().port;
+    const response = await fetch(
+      `http://127.0.0.1:${port}/api/locations/resolve?address=1+Main+St&city=Atlanta&region=GA`,
+    );
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).status, 'NO_MATCH');
+  } finally {
+    await server.close();
+  }
+});

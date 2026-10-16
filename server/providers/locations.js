@@ -36,8 +36,9 @@ export function locationsProxy({ resolve = createAddressResolver() } = {}) {
       });
     }
   }
-  const install = ({ middlewares }) =>
+  const install = ({ middlewares }) => {
     middlewares.use('/api/locations/resolve', handler);
+  };
   return {
     name: 'locations-resolver',
     configureServer: install,
