@@ -39,14 +39,15 @@ relationships stay in storage but are omitted from public linked-record lists.
 
 ## Hourly procedure and standing authorization
 
-The user's standing permissions in [hourly review instructions](https://github.com/alisonaquinas/vector-sdr/blob/main/docs/p25-hourly-event-review.md)
+The user's standing permissions in the SDR workspace instructions (`/home/aaquinas/sdr-control/docs/p25-hourly-event-review.md`)
 authorize reading the public APD source, refreshing this mirror, claiming and
 completing reviews, and saving/correcting supported relationships through SDR
 GraphQL. No additional approval is needed for those actions. Use the existing
 SDR access/session and control header. Do not alter transcript text or official
 APD source data.
 
-1. After the transcript pass, inspect `apdSyncStatus` and invoke
+1. After the first completed transcript batch (or immediately if none was
+   available), reserve time for a bounded APD batch. Inspect `apdSyncStatus` and invoke
    `refreshApdIncidents`. Check HTTP status, GraphQL errors **and** the returned
    sync `error`. On refresh failure, record it and distinguish the retained
    snapshot from a fresh import; do not conclude no match solely from a failed
