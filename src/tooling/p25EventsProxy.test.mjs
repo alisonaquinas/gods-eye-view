@@ -33,6 +33,7 @@ test('proxy only sends a fixed read query with validated bounds and no browser c
   const request = setup(async (_url, init) => {
     const body = JSON.parse(init.body);
     assert.match(body.query, /^query GevP25Events/);
+    assert.match(body.query, /organizations\s*\{\s*id name aliases\s*\}/);
     assert.equal(body.variables.filter.from, '2026-10-15T12:00:00.000Z');
     assert.equal(init.headers['X-Vector-Control'], '1');
     assert.equal(init.redirect, 'error');
@@ -44,6 +45,22 @@ test('proxy only sends a fixed read query with validated bounds and no browser c
   assert.equal((await request(path, 'POST')).code, 405);
   assert.equal((await request('/?from=nope&until=nope')).code, 400);
   assert.equal((await request(`${path}&before=mutation`)).code, 400);
+});
+test('proxy preserves event organization tags from SDR', async () => {
+  const entry = {
+    id: '3',
+    organizations: [
+      { id: '7', name: 'Atlanta Fire Rescue Department', aliases: ['AFD'] },
+    ],
+  };
+  const request = setup(async () =>
+    Response.json({
+      data: { eventLogEntries: { entries: [entry], total: 1, next: null } },
+    }),
+  );
+  const result = await request(path);
+  assert.equal(result.code, 200);
+  assert.deepEqual(result.payload.entries, [entry]);
 });
 test('HTTP-200 GraphQL errors are reported as failures without leaking upstream detail', async () => {
   const request = setup(async () =>

@@ -113,6 +113,23 @@
 .p25-report {
   white-space: pre-wrap;
 }
+.p25-organizations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+  white-space: normal;
+}
+.p25-organization {
+  max-width: 100%;
+  padding: 2px 6px;
+  border: 1px solid var(--glass-border, #596676);
+  border-radius: 4px;
+  color: var(--accent, #5edbd5);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
 .p25-source {
   display: inline-block;
   margin-top: 10px;

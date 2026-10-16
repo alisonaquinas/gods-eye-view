@@ -50,6 +50,37 @@ export function p25Location(value) {
   };
 }
 
+export function p25Organizations(value) {
+  if (!Array.isArray(value)) return [];
+  const entries = new Map();
+  for (const item of value.slice(0, 50)) {
+    if (
+      !item ||
+      !/^[1-9]\d*$/.test(String(item.id)) ||
+      !Number.isSafeInteger(Number(item.id)) ||
+      typeof item.name !== 'string' ||
+      !item.name.trim() ||
+      item.name.length > 120
+    )
+      continue;
+    entries.set(String(item.id), {
+      id: String(item.id),
+      name: item.name,
+      aliases: Array.isArray(item.aliases)
+        ? item.aliases
+            .filter(
+              (alias) =>
+                typeof alias === 'string' &&
+                alias.trim() &&
+                alias.length <= 120,
+            )
+            .slice(0, 50)
+        : [],
+    });
+  }
+  return [...entries.values()];
+}
+
 export function normalizeP25Event(row, bounds) {
   const time = Date.parse(row?.timestamp);
   if (
@@ -68,6 +99,7 @@ export function normalizeP25Event(row, bounds) {
     title:
       row.rawText.split('\n').find((line) => line.trim()) || `Event ${row.id}`,
     location: p25Location(row.location),
+    organizations: p25Organizations(row.organizations),
     linkCount: Number(row.linkCount) || 0,
   };
 }

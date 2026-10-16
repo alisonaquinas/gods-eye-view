@@ -5,6 +5,7 @@ const QUERY = `query GevP25Events($filter: EventLogFilter, $before: ID) {
   eventLogEntries(filter: $filter, first: 250, before: $before) {
     total next entries {
       id timestamp rawText linkCount
+      organizations { id name aliases }
       location { latitude longitude label precision source }
     }
   }

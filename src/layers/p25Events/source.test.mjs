@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createP25EventSource } from './source.js';
-import { DEFAULT_P25_WINDOW, p25Window } from './model.js';
+import { DEFAULT_P25_WINDOW, p25Window, p25Organizations } from './model.js';
 
 const window = {
   from: '2026-10-15T12:00:00.000Z',
@@ -17,6 +17,29 @@ const row = (id, extra = {}) => ({
 });
 const page = (entries, next = null, total = entries.length) =>
   Response.json({ entries, next, total });
+
+test('organization tags survive snapshots, tolerate older events and discard invalid metadata', async () => {
+  const organizations = [
+    { id: '7', name: 'Atlanta Fire Rescue Department', aliases: ['AFD'] },
+    { id: '8', name: 'Georgia Tech', aliases: [] },
+  ];
+  const result = await createP25EventSource({
+    fetchImpl: async () => page([row('2', { organizations }), row('1')]),
+  }).getSnapshot(window);
+  assert.deepEqual(result.entries[0].organizations, organizations);
+  assert.deepEqual(result.entries[1].organizations, []);
+  assert.deepEqual(p25Organizations(null), []);
+  assert.deepEqual(
+    p25Organizations([
+      null,
+      { id: '0', name: 'Invalid' },
+      { id: '1', name: '' },
+      { id: '2', name: 'Valid', aliases: [5, '', 'Alias'] },
+      { id: '2', name: 'Valid', aliases: ['Alias'] },
+    ]),
+    [{ id: '2', name: 'Valid', aliases: ['Alias'] }],
+  );
+});
 
 test('default is a rolling six-hour window; custom ranges keep their exact bounds', () => {
   assert.deepEqual(

@@ -15,6 +15,19 @@ const dateLabel = (value) =>
 /** Persistent form nodes keep draft dates and keyboard focus across live refreshes. */
 export function createP25EventsControls(container, apply) {
   const doc = container.ownerDocument;
+  const renderOrganizations = (container, organizations = []) => {
+    container.replaceChildren();
+    container.hidden = organizations.length === 0;
+    for (const organization of organizations) {
+      const tag = doc.createElement('span');
+      tag.className = 'p25-organization';
+      tag.textContent = organization.name;
+      tag.title = organization.aliases?.length
+        ? `Also known as ${organization.aliases.join(', ')}`
+        : organization.name;
+      container.appendChild(tag);
+    }
+  };
   const root = doc.createElement('div');
   root.className = 'p25-controls';
   root.innerHTML = `
@@ -41,7 +54,9 @@ export function createP25EventsControls(container, apply) {
     <p class="p25-coverage"></p>
     <details class="p25-events"><summary>Events</summary><div class="p25-event-list"></div></details>
     <section class="p25-selected" aria-label="Selected P25 event" hidden>
-      <h4></h4><p class="p25-event-time"></p><p class="p25-location"></p>
+      <h4></h4><p class="p25-event-time"></p>
+      <div class="p25-organizations" role="group" aria-label="Departments and organizations" hidden></div>
+      <p class="p25-location"></p>
       <p class="p25-report"></p><p class="p25-provenance"></p>
     </section>
     <a class="p25-source" href="https://sdr.alisonaquinas.pro/p25" target="_blank" rel="noopener noreferrer">Open SDR event log ↗</a>`;
@@ -160,6 +175,7 @@ export function createP25EventsControls(container, apply) {
           event.title,
           event.timestamp,
           Boolean(event.location),
+          event.organizations,
         ]),
       );
       const list = root.querySelector('.p25-event-list');
@@ -171,6 +187,10 @@ export function createP25EventsControls(container, apply) {
           button.type = 'button';
           button.dataset.eventId = event.id;
           button.textContent = `${dateLabel(event.timestamp)} · ${event.location ? 'Mapped' : 'No geotag'}\n${event.title}`;
+          const organizations = doc.createElement('span');
+          organizations.className = 'p25-organizations';
+          renderOrganizations(organizations, event.organizations);
+          button.appendChild(organizations);
           list.appendChild(button);
         }
       }
@@ -189,6 +209,10 @@ export function createP25EventsControls(container, apply) {
       detail.hidden = !selected;
       if (selected) {
         detail.querySelector('h4').textContent = selected.title;
+        renderOrganizations(
+          detail.querySelector('.p25-organizations'),
+          selected.organizations,
+        );
         detail.querySelector('.p25-event-time').textContent =
           `${dateLabel(selected.timestamp)} · ${selected.linkCount} linked sources · event ${selected.id}`;
         detail.querySelector('.p25-location').textContent = selected.location
