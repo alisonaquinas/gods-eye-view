@@ -32,12 +32,15 @@ import { effAtlasProxy } from './effAtlas.js';
 import { deflockProxy } from './deflock.js';
 import { p25EventsProxy } from './p25-events.js';
 import { locationsProxy } from './locations.js';
+import { gisIndexProxy } from './gis-index.js';
+import { configuredIndexStore } from './gis-index/store.js';
 
 /**
  * Construct the local provider plugins in their established order.
  * `realtime` configures the voice session token endpoint.
  */
 function localProviderPlugins({ realtime } = {}) {
+  const index = configuredIndexStore();
   return [
     apiCachePlugin(),
     openSkyProxy(),
@@ -70,7 +73,8 @@ function localProviderPlugins({ realtime } = {}) {
     effAtlasProxy(),
     deflockProxy(),
     p25EventsProxy(),
-    locationsProxy(),
+    locationsProxy({ index }),
+    gisIndexProxy({ store: index }),
     gnssIntegrityProxy(),
     keySetupEndpoint(),
   ];

@@ -1058,5 +1058,17 @@
   "server/providers/common/api-cache.js",
   "server/providers/common/api-cache-config.js",
   "server/providers/common/redis-cache-store.js",
-  "src/tooling/apiCache.test.mjs"
+  "src/tooling/apiCache.test.mjs",
+  "server/providers/gis-index.js",
+  "scripts/gis-index.mjs",
+  "src/tooling/gisIndex.test.mjs",
+  "src/ui/gisIndexControls.js",
+  "src/ui/styles/gis-index.css",
+  "server/providers/gis-index/catalog.js",
+  "server/providers/gis-index/normalize.js",
+  "server/providers/gis-index/schema.js",
+  "server/providers/gis-index/store.js",
+  "server/providers/gis-index/lookup.js",
+  "server/providers/gis-index/transport.js",
+  "server/providers/gis-index/worker.js"
 ]

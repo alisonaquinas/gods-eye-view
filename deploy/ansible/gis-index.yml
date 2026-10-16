@@ -1,0 +1,241 @@
+---
+- name: Deploy GEV and its persistent GIS index worker
+  hosts: gev
+  gather_facts: false
+  vars:
+    gev_source: /opt/gods-eye-view
+    gev_account: gods-eye-view
+    gev_node: /opt/node-v24.14.0-linux-x64
+    gev_branch: codex/gis-address-index
+    gev_gis_interval_ms: 10000
+    gev_gis_hourly_limit: 240
+    gev_gis_page_size: 1000
+    gev_gis_schema: public
+    gev_gis_pilot: true
+  tasks:
+    - name: Require explicit release and inspected baseline
+      ansible.builtin.assert:
+        that:
+          - gev_release is defined and gev_release is match('^[a-f0-9]{40}$')
+          - gev_expected is defined and gev_expected is match('^[a-f0-9]{40}$')
+          - gev_gis_interval_ms | int >= 10000
+          - gev_gis_hourly_limit | int <= 240
+          - gev_gis_schema is match('^[a-z][a-z0-9_]{0,62}$')
+    - name: Read active revision
+      ansible.builtin.command: git rev-parse HEAD
+      args: { chdir: '{{ gev_source }}' }
+      become: true
+      become_user: '{{ gev_account }}'
+      vars: { ansible_become: true }
+      register: gev_previous
+      changed_when: false
+    - name: Check tracked source cleanliness
+      ansible.builtin.command: git status --porcelain --untracked-files=no
+      args: { chdir: '{{ gev_source }}' }
+      become: true
+      become_user: '{{ gev_account }}'
+      vars: { ansible_become: true }
+      register: gev_dirty
+      changed_when: false
+    - name: Guard against concurrent or unrelated deployments
+      ansible.builtin.assert:
+        that:
+          - gev_previous.stdout in [gev_expected, gev_release]
+          - gev_dirty.stdout == ''
+    - name: Fetch the release branch
+      ansible.builtin.command:
+        argv: [git, fetch, origin, 'refs/heads/{{ gev_branch }}']
+        chdir: '{{ gev_source }}'
+      become: true
+      become_user: '{{ gev_account }}'
+      vars: { ansible_become: true }
+      environment:
+        GIT_SSH_COMMAND: ssh -i /var/lib/gods-eye-view/.ssh/id_ed25519_github -o IdentitiesOnly=yes -o BatchMode=yes
+      changed_when: false
+    - name: Require release to preserve the inspected deployment history
+      ansible.builtin.command:
+        argv:
+          [
+            git,
+            merge-base,
+            --is-ancestor,
+            '{{ gev_expected }}',
+            '{{ gev_release }}',
+          ]
+        chdir: '{{ gev_source }}'
+      become: true
+      become_user: '{{ gev_account }}'
+      vars: { ansible_become: true }
+      changed_when: false
+    - name: Check whether a prior worker exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/gev-gis-index.service
+      register: gev_old_worker
+    - name: Stop the prior worker before replacing its code
+      ansible.builtin.systemd_service:
+        name: gev-gis-index
+        state: stopped
+      when: gev_old_worker.stat.exists
+    - name: Install and verify the release
+      block:
+        - name: Stop GEV for a consistent checkout
+          ansible.builtin.systemd_service:
+            { name: gods-eye-view, state: stopped }
+        - name: Activate the exact release
+          ansible.builtin.command:
+            argv: [git, checkout, --detach, '{{ gev_release }}']
+            chdir: '{{ gev_source }}'
+          become: true
+          become_user: '{{ gev_account }}'
+          vars: { ansible_become: true }
+          changed_when: gev_previous.stdout != gev_release
+        - name: Install locked dependencies
+          ansible.builtin.command:
+            argv: ['{{ gev_node }}/bin/npm', ci, --no-audit, --no-fund]
+            chdir: '{{ gev_source }}'
+          become: true
+          become_user: '{{ gev_account }}'
+          vars: { ansible_become: true }
+          environment:
+            PATH: '{{ gev_node }}/bin:/usr/bin:/bin'
+            PUPPETEER_SKIP_DOWNLOAD: 'true'
+        - name: Install metered worker settings
+          ansible.builtin.copy:
+            dest: /etc/gods-eye-view/gis-index.env
+            owner: root
+            group: root
+            mode: '0600'
+            content: |
+              GEV_GIS_REQUEST_INTERVAL_MS={{ gev_gis_interval_ms }}
+              GEV_GIS_REQUESTS_PER_HOUR={{ gev_gis_hourly_limit }}
+              GEV_GIS_PAGE_SIZE={{ gev_gis_page_size }}
+              GEV_GIS_SCHEMA={{ gev_gis_schema }}
+        - name: Give GEV the same database schema selection
+          ansible.builtin.copy:
+            dest: /etc/systemd/system/gods-eye-view.service.d/gis-index.conf
+            owner: root
+            group: root
+            mode: '0644'
+            content: |
+              [Service]
+              EnvironmentFile=/etc/gods-eye-view/gis-index.env
+        - name: Install standalone worker
+          ansible.builtin.template:
+            src: ../systemd/gev-gis-index.service.j2
+            dest: /etc/systemd/system/gev-gis-index.service
+            owner: root
+            group: root
+            mode: '0644'
+        - name: Start GEV
+          ansible.builtin.systemd_service:
+            name: gods-eye-view
+            state: started
+            daemon_reload: true
+        - name: Wait for GEV
+          ansible.builtin.wait_for: { host: 127.0.0.1, port: 4173, timeout: 60 }
+        - name: Verify the database-backed status API
+          ansible.builtin.uri:
+            url: http://127.0.0.1:4173/api/locations/index/status
+            return_content: true
+          register: gev_index_status
+          until: gev_index_status.status == 200 and gev_index_status.json.configured
+          retries: 5
+          delay: 3
+        - name: Test a bounded Oakland City sample using the service account and production database
+          ansible.builtin.command:
+            argv:
+              - systemd-run
+              - --wait
+              - --collect
+              - --pipe
+              - '--unit=gev-gis-pilot-{{ gev_release[:12] }}'
+              - '--property=User={{ gev_account }}'
+              - '--property=WorkingDirectory={{ gev_source }}'
+              - --property=EnvironmentFile=/etc/gods-eye-view/storage.env
+              - '--setenv=GEV_GIS_REQUEST_INTERVAL_MS={{ gev_gis_interval_ms }}'
+              - '--setenv=GEV_GIS_REQUESTS_PER_HOUR={{ gev_gis_hourly_limit }}'
+              - '--setenv=GEV_GIS_PAGE_SIZE={{ gev_gis_page_size }}'
+              - '{{ gev_node }}/bin/node'
+              - scripts/gis-index.mjs
+              - sample
+              - --sources
+              - atlanta-addresses,atlanta-streets
+              - --schema
+              - 'gis_verify_{{ gev_release[:12] }}'
+              - --bbox
+              - '-84.423,33.723,-84.419,33.727'
+          when: gev_gis_pilot | bool
+          register: gev_pilot
+        - name: Verify the existing location API
+          ansible.builtin.uri:
+            url: 'http://127.0.0.1:4173/api/locations/resolve?address=Lakeview%20Place&city=East%20Point&region=GA&kind=STREET'
+            return_content: true
+            timeout: 30
+          register: gev_location
+          failed_when: gev_location.status != 200 or gev_location.json.status != 'RESOLVED' or gev_location.json.location.precision != 'STREET'
+        - name: Enable and start the long-running importer
+          ansible.builtin.systemd_service:
+            name: gev-gis-index
+            enabled: true
+            state: started
+            daemon_reload: true
+        - name: Verify worker heartbeat and all six registered sources
+          ansible.builtin.uri:
+            url: http://127.0.0.1:4173/api/locations/index/status
+            return_content: true
+          register: gev_running
+          until: gev_running.status == 200 and gev_running.json.running and gev_running.json.sources | length == 6
+          retries: 8
+          delay: 5
+        - name: Verify public status API
+          ansible.builtin.uri:
+            url: https://gev.alisonaquinas.pro/api/locations/index/status
+            status_code: 200
+          delegate_to: localhost
+          become: false
+        - name: Persist deployed revision in the controller inventory
+          ansible.builtin.lineinfile:
+            path: /root/home-cluster/inventory/production/host_vars/gev.yml
+            regexp: '^gods_eye_view_repository_version:'
+            line: 'gods_eye_view_repository_version: {{ gev_release }}'
+            backup: true
+          delegate_to: localhost
+          become: false
+        - name: Report verified release
+          ansible.builtin.debug:
+            msg:
+              revision: '{{ gev_release }}'
+              worker_running: '{{ gev_running.json.running }}'
+              sources: '{{ gev_running.json.sources | length }}'
+              initial_import: Running independently; inspect the Address index panel for progress.
+      rescue:
+        - name: Stop and disable the failed worker
+          ansible.builtin.systemd_service:
+            { name: gev-gis-index, state: stopped, enabled: false }
+          failed_when: false
+        - name: Stop failed web release
+          ansible.builtin.systemd_service:
+            { name: gods-eye-view, state: stopped }
+        - name: Restore the previous revision
+          ansible.builtin.command:
+            argv: [git, checkout, --detach, '{{ gev_previous.stdout }}']
+            chdir: '{{ gev_source }}'
+          become: true
+          become_user: '{{ gev_account }}'
+          vars: { ansible_become: true }
+        - name: Restore locked dependencies
+          ansible.builtin.command:
+            argv: ['{{ gev_node }}/bin/npm', ci, --no-audit, --no-fund]
+            chdir: '{{ gev_source }}'
+          become: true
+          become_user: '{{ gev_account }}'
+          vars: { ansible_become: true }
+          environment:
+            PATH: '{{ gev_node }}/bin:/usr/bin:/bin'
+            PUPPETEER_SKIP_DOWNLOAD: 'true'
+        - name: Restart the previous GEV release
+          ansible.builtin.systemd_service:
+            { name: gods-eye-view, state: started, daemon_reload: true }
+        - name: Report rollback
+          ansible.builtin.fail:
+            msg: Verification failed; previous web revision restored and GIS worker stopped. Database checkpoints and indexed records are retained for diagnosis.

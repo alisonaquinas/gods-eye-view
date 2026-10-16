@@ -2345,7 +2345,8 @@
       "src/data/viewportBounds.js",
       "src/app/layers/deflock.js",
       "src/layers/deflock/index.js",
-      "src/layers/deflock/source.js"
+      "src/layers/deflock/source.js",
+      "src/ui/gisIndexControls.js"
     ],
     "external": [
       "hls.js",

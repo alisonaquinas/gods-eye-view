@@ -6,6 +6,16 @@
       <button class="panel-collapse-btn pp-collapse-btn" data-collapse-target="pp-toggles" title="Collapse panel">&#x25C0;</button>
     </div>
     <div class="pp-panel-body" data-rail-scroller>
+    <details id="gis-index-settings" class="gis-index-settings">
+      <summary>Address index</summary>
+      <div class="gis-index-body">
+        <p data-gis-status role="status">Open to check the address index.</p>
+        <p data-gis-error role="alert" hidden></p>
+        <div data-gis-content></div>
+        <button type="button" class="gis-index-refresh">Refresh status</button>
+        <p class="gis-index-note">Checks every 10 seconds while open. Import settings are managed on the server.</p>
+      </div>
+    </details>
     <div class="pp-toggle-group">
       <button class="pp-toggle-btn" id="hud-toggle" title="Intelligence HUD (H)">
         <span class="pp-icon">&#x25CE;</span>

@@ -22,7 +22,12 @@ Conflicting saved records require review. Historical SDR geotags are imported
 without inventing a city from their label, so their locality must be verified
 before they become reusable city-scoped matches.
 
-For uncached locations, the resolver uses the US Census Bureau structured address
+When configured, the [local GIS index](GIS-ADDRESS-INDEX.md) is checked after the
+saved registry and before external geocoders. Exact address points, conservative
+shared-endpoint intersections, and approximate street points retain their source
+and precision. Conflicts and stale indexed matches require review.
+
+For locations absent from the index, the resolver uses the US Census Bureau structured address
 service and, in Georgia, the City of Atlanta street-centerline geocoder. These
 are fixed upstreams with redirects disabled, 12-second timeouts, bounded replies,
 rate limits, bounded concurrency and a short result cache. It does not use the

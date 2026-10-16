@@ -1,0 +1,86 @@
+/* Address-index monitor inherits the Display panel's surface and typography. */
+.gis-index-settings {
+  color: var(--text-primary);
+  font: 12px/1.5 var(--font-sans);
+  letter-spacing: normal;
+  padding: 0 8px 8px;
+  border-bottom: 1px solid var(--glass-border-hover);
+}
+.gis-index-settings summary {
+  cursor: pointer;
+  min-height: 40px;
+  padding: 10px 0;
+  overflow-wrap: anywhere;
+}
+.gis-index-settings > summary {
+  font-weight: 600;
+}
+.gis-index-settings summary:hover {
+  color: var(--accent);
+}
+.gis-index-body p {
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.gis-index-note,
+.gis-index-source-count {
+  color: var(--text-primary);
+  opacity: 0.8;
+}
+.gis-index-counts,
+.gis-index-source-count,
+.gis-index-body progress {
+  font-variant-numeric: tabular-nums;
+}
+.gis-index-source {
+  border-top: 1px solid var(--glass-border-hover);
+  padding-bottom: 4px;
+}
+.gis-index-source-count {
+  display: block;
+  padding-left: 14px;
+  font-size: 11px;
+}
+.gis-index-body progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  accent-color: var(--accent);
+  margin: 8px 0 12px;
+}
+.gis-index-body a {
+  color: var(--accent);
+  display: inline-block;
+  padding: 8px 0;
+  text-underline-offset: 3px;
+}
+.gis-index-error,
+[data-gis-error] {
+  color: #ffd69a;
+}
+.gis-index-refresh {
+  font: inherit;
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border-hover);
+  border-radius: 6px;
+  background: var(--menu-bg);
+  min-height: 40px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+.gis-index-refresh:hover {
+  border-color: var(--accent);
+}
+.gis-index-refresh:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.gis-index-settings :is(summary, button, a):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.gis-index-body ::selection {
+  background: var(--accent);
+  color: var(--bg-dark);
+}

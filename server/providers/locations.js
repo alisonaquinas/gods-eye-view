@@ -3,7 +3,12 @@ import { parseLocationQuery } from './locations/matching.js';
 import { createAddressResolver } from './locations/resolver.js';
 
 /** Read-only resolution: accepted matches are saved/linked through SDR GraphQL. */
-export function locationsProxy({ resolve = createAddressResolver() } = {}) {
+export function locationsProxy({
+  index = null,
+  resolve = createAddressResolver({
+    indexLookup: index ? (query) => index.lookup(query) : undefined,
+  }),
+} = {}) {
   const allow = makeRateLimiter({ windowMs: 60_000, max: 30, globalMax: 120 });
   const send = (res, status, payload) => {
     if (res.destroyed) return;

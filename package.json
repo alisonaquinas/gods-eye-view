@@ -2,7 +2,7 @@
   "name": "gods-eye-view",
   "private": true,
   "version": "0.2.1",
-  "description": "A real-time intelligence console for planet Earth — photorealistic 3D globe, live aircraft/ships/satellites/earthquakes/CCTV, and hands-free voice control. Runs in a browser.",
+  "description": "A real-time intelligence console for planet Earth \u2014 photorealistic 3D globe, live aircraft/ships/satellites/earthquakes/CCTV, and hands-free voice control. Runs in a browser.",
   "type": "module",
   "license": "MIT",
   "author": "Bilawal Sidhu",
@@ -51,7 +51,9 @@
     "qa:street-level:fixtures": "node scripts/qa-street-level.mjs --fixtures",
     "check:boundaries": "node scripts/check-import-directions.mjs && node scripts/check-package-boundaries.mjs",
     "qa:transit": "node scripts/qa-transit.mjs",
-    "mcp": "node server/mcp/stdio.js"
+    "mcp": "node server/mcp/stdio.js",
+    "gis:index": "node scripts/gis-index.mjs",
+    "test:gis": "node --test src/tooling/gisIndex.test.mjs src/tooling/locationResolver.test.mjs"
   },
   "dependencies": {
     "@jtarrio/signals": "^0.10.0",
@@ -65,6 +67,7 @@
     "mapillary-js": "^4.1.2",
     "mgrs": "^2.1.0",
     "pbf": "^5.1.2",
+    "pg": "8.23.1",
     "satellite.js": "^6.0.2"
   },
   "devDependencies": {

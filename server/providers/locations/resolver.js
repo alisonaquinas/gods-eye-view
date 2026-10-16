@@ -51,6 +51,7 @@ export function createAddressResolver({
   registryUrl = process.env.P25_GRAPHQL_URL ||
     'https://sdr.alisonaquinas.pro/api/graphql',
   registryCookie = process.env.P25_SDR_COOKIE,
+  indexLookup,
 } = {}) {
   const cache = new Map(),
     inFlight = new Map();
@@ -150,6 +151,56 @@ export function createAddressResolver({
           cached: true,
         };
       return { ...base, status: 'AMBIGUOUS' };
+    }
+    // Check fresh local GIS records before any external geocoder/cache. New imports
+    // become usable immediately; an exact but conflicting/stale match needs review.
+    if (indexLookup) {
+      try {
+        const indexed = await indexLookup(query);
+        attempts.push({
+          provider: 'GEV GIS index',
+          status: indexed ? 'OK' : 'NO_MATCH',
+          at: new Date(now()).toISOString(),
+        });
+        if (indexed) {
+          const checked = indexed.candidates.map((row) => matches(query, row));
+          const selected = checked[0];
+          const resolved =
+            indexed.status === 'RESOLVED' &&
+            checked.every((row) => row.verified);
+          return {
+            ...base,
+            candidates: checked,
+            status: resolved ? 'RESOLVED' : 'AMBIGUOUS',
+            ...(resolved && selected
+              ? {
+                  location: selected.location,
+                  saveInput: {
+                    canonicalAddress: selected.address,
+                    city: selected.city,
+                    region: query.region,
+                    country: 'US',
+                    location: selected.location,
+                    aliases: [
+                      ...new Set([
+                        query.address,
+                        normalizeAddress(query.address),
+                        normalizeAddress(selected.address),
+                      ]),
+                    ],
+                  },
+                }
+              : {}),
+          };
+        }
+      } catch {
+        attempts.push({
+          provider: 'GEV GIS index',
+          status: 'UNAVAILABLE',
+          at: new Date(now()).toISOString(),
+          reason: 'Local index unavailable; using existing geocoders.',
+        });
+      }
     }
     const key = JSON.stringify(query);
     const cached = cache.get(key);

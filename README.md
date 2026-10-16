@@ -690,3 +690,9 @@ One heads-up from the inside: build in this space for a week and you learn that 
 **🌐 God's Eye View. No place left behind.**
 
 </div>
+
+### Persistent Georgia location index
+
+The location API can use the [Georgia GIS address/street index](docs/GIS-ADDRESS-INDEX.md).
+A standalone worker imports public Atlanta and Georgia layers with metered requests
+and a 60-day rolling refresh. Open **Display → Address index** to monitor it.
