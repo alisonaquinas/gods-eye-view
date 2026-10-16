@@ -35,7 +35,12 @@ export class ShareRestoration {
   }
   attachLinks(shareLinkManager) {
     this.shareLinkManager = shareLinkManager;
-    this._initialShareState = shareLinkManager.parseInitialHash();
+    const state = shareLinkManager.parseInitialHash();
+    // Every page load starts unobstructed, even when an older bookmark enabled
+    // overlays. Keep normal manual controls and restoration authority intact.
+    this._initialShareState = state
+      ? { ...state, hudVisible: false, scopeEnabled: false }
+      : null;
   }
   start() {
     // Restore from URL hash if present

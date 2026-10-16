@@ -2,7 +2,6 @@ import * as Cesium from 'cesium';
 
 /**
  * Camera presets for notable locations.
- * Phase 1 default: fly to Austin, TX on load.
  */
 export const CAMERA_PRESETS = {
   austin: {
@@ -43,6 +42,18 @@ export function flyToPreset(viewer, presetName, duration = 3.0) {
     orientation: preset.orientation,
     duration,
     easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT,
+  });
+}
+
+/** Open a north-up overview of metro Atlanta, fitted to the current viewport. */
+export function showMetroAtlanta(viewer) {
+  viewer.camera.setView({
+    destination: Cesium.Rectangle.fromDegrees(-85.0, 33.25, -83.75, 34.3),
+    orientation: {
+      heading: 0,
+      pitch: Cesium.Math.toRadians(-90),
+      roll: 0,
+    },
   });
 }
 

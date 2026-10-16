@@ -796,6 +796,14 @@ export class VisualSettings {
       this.hud.setMode(defaults.hudVisible ? 'on' : 'off');
       this._updateHudButtonState();
     }
+    if (typeof defaults.scopeEnabled === 'boolean') {
+      this.services.setScopeMaskEnabled(defaults.scopeEnabled);
+      this._scopeBtn?.classList.toggle('active', defaults.scopeEnabled);
+      this._scopeBtn?.setAttribute(
+        'aria-pressed',
+        String(defaults.scopeEnabled),
+      );
+    }
 
     if (defaults.detectionMode) {
       this._setDetectionMode(defaults.detectionMode);
