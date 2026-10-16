@@ -182,6 +182,9 @@ export function createP25EventsControls(container, apply) {
       const selected = value.entries.find(
         (event) => event.id === value.selectedId,
       );
+      root.querySelector('.p25-source').href = selected
+        ? `https://sdr.alisonaquinas.pro/p25/events/${encodeURIComponent(selected.id)}`
+        : 'https://sdr.alisonaquinas.pro/p25';
       const detail = root.querySelector('.p25-selected');
       detail.hidden = !selected;
       if (selected) {
