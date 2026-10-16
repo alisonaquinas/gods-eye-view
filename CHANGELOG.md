@@ -1,5 +1,9 @@
 # Changelog
 
+- P25 event markers and selected labels now share measured map-surface anchors,
+  preventing drift while panning over photorealistic 3D tiles. Surface samples
+  are bounded, refreshed after camera/map changes, and retained during panning.
+
 - Added a separate DeFlock ALPR Cameras layer from DeFlock's published hourly
   US/Canada map tiles. It includes mapped OSM nodes and way centroids, links to
   each OSM object, and credits DeFlock and OpenStreetMap.

@@ -1,6 +1,7 @@
 import * as Cesium from 'cesium';
 import { isPointerFree } from '../../data/inputOwnership.js';
 import { DEFAULT_P25_WINDOW, p25Window } from './model.js';
+import { createP25SurfaceAnchors } from './surface.js';
 
 const ID = 'p25-events';
 const PREFIX = `${ID}:`;
@@ -16,7 +17,7 @@ export function createP25EventsLayer({
   screenSpaceEventHandlerFactory = (viewer) =>
     new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas),
 }) {
-  let viewer, dataSource, handler, request, listener;
+  let viewer, dataSource, handler, request, listener, anchors;
   let enabled = false,
     loading = false,
     error = null,
@@ -36,17 +37,15 @@ export function createP25EventsLayer({
     selectedId = snapshot.entries.some((event) => event.id === id) ? id : null;
     overlayHost.clearSource(ID);
     const event = snapshot.entries.find((event) => event.id === selectedId);
-    if (event?.location && enabled) {
+    const position = event?.location && anchors?.position(event.location);
+    if (position && enabled) {
       const location = event.location;
       overlayHost.setEntries(
         ID,
         [
           {
             id: event.id,
-            position: Cesium.Cartesian3.fromDegrees(
-              location.longitude,
-              location.latitude,
-            ),
+            position,
             variant: 'selected',
             selected: true,
             protected: true,
@@ -65,32 +64,39 @@ export function createP25EventsLayer({
         ],
         { cohortLimit: 1, collisionCapacity: 0, moving: false },
       );
-      if (fly)
-        viewer.camera.flyTo({
-          destination: Cesium.Cartesian3.fromDegrees(
-            location.longitude,
-            location.latitude,
-            1800,
-          ),
-          duration: 1,
-        });
     }
+    if (fly && event?.location && enabled)
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(
+          event.location.longitude,
+          event.location.latitude,
+          1800,
+        ),
+        duration: 1,
+      });
     changed();
   }
 
   function render() {
+    anchors.sync(mapped());
     dataSource.entities.suspendEvents();
     try {
       dataSource.entities.removeAll();
       for (const event of mapped()) {
         const location = event.location;
+        const position = anchors.position(location);
         dataSource.entities.add({
           id: `${PREFIX}${event.id}`,
           name: event.title,
-          position: Cesium.Cartesian3.fromDegrees(
-            location.longitude,
-            location.latitude,
-          ),
+          // Keep coordinates for navigation, but do not draw an unresolved
+          // marker at the ellipsoid, underneath the visible map.
+          show: Boolean(position),
+          position:
+            position ||
+            Cesium.Cartesian3.fromDegrees(
+              location.longitude,
+              location.latitude,
+            ),
           point: {
             pixelSize: approximate(event) ? 12 : 10,
             color: Cesium.Color.fromCssColorString(
@@ -98,7 +104,7 @@ export function createP25EventsLayer({
             ),
             outlineColor: Cesium.Color.BLACK,
             outlineWidth: 2,
-            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            heightReference: Cesium.HeightReference.NONE,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
         });
@@ -120,10 +126,35 @@ export function createP25EventsLayer({
       dataSource = new Cesium.CustomDataSource(ID);
       dataSource.show = false;
       viewer.dataSources.add(dataSource);
+      anchors = createP25SurfaceAnchors({
+        viewer,
+        requestRender,
+        excludeObjects: () => {
+          const entities = [];
+          for (let i = 0; i < viewer.dataSources.length; i++)
+            entities.push(...viewer.dataSources.get(i).entities.values);
+          return entities;
+        },
+        onChange(records) {
+          let selectedChanged = false;
+          for (const { ids, position } of records) {
+            for (const id of ids) {
+              const entity = dataSource.entities.getById(`${PREFIX}${id}`);
+              if (!entity) continue;
+              entity.show = Boolean(position);
+              if (position) entity.position = position;
+              if (id === selectedId) selectedChanged = true;
+            }
+          }
+          if (selectedChanged) select(selectedId);
+          else requestRender?.('p25-surface');
+        },
+      });
       overlayHost.setVisible(ID, false);
     },
     enable() {
       enabled = true;
+      anchors.setEnabled(true);
       dataSource.show = true;
       overlayHost.setVisible(ID, true);
       picking.registerPickOwner(ID, (id) => id.startsWith(PREFIX));
@@ -155,6 +186,7 @@ export function createP25EventsLayer({
     },
     disable() {
       enabled = false;
+      anchors.setEnabled(false);
       request?.abort();
       request = null;
       loading = false;
@@ -233,7 +265,21 @@ export function createP25EventsLayer({
           select: (id) => select(id, true),
           refresh: () => layer.update(),
           fit: () => {
-            if (mapped().length) void viewer.flyTo(dataSource, { duration: 1 });
+            const positions = mapped().map(
+              ({ location }) =>
+                anchors.position(location) ||
+                Cesium.Cartesian3.fromDegrees(
+                  location.longitude,
+                  location.latitude,
+                ),
+            );
+            if (positions.length) {
+              const bounds = Cesium.BoundingSphere.fromPoints(positions);
+              // A single/coincident unresolved location has zero radius. Keep
+              // the overview above the map while its first height resolves.
+              bounds.radius = Math.max(bounds.radius, 1000);
+              viewer.camera.flyToBoundingSphere(bounds, { duration: 1 });
+            }
           },
         },
       };
@@ -255,6 +301,7 @@ export function createP25EventsLayer({
     destroy() {
       if (enabled) layer.disable();
       request?.abort();
+      anchors?.destroy();
       listener = null;
       overlayHost.clearSource(ID);
       if (dataSource) viewer.dataSources.remove(dataSource, true);

@@ -1,5 +1,18 @@
 # God's Eye View Current State
 
+## P25 map anchors — October 16, 2026
+
+P25 dots and selected labels use the same explicit Cartesian position sampled
+from the visible map with `scene.sampleHeight`, bypassing automatic 3D Tiles
+CPU clamping, which returned underground heights in the Atlanta view. Sampling
+excludes event/data-source entities, shares coincident locations, and runs at
+most two depth queries per rendered frame after camera movement and tile
+streaming settle. Unresolved locations remain in the event list and navigation
+bounds but are not painted at zero elevation. Good anchors survive panning and
+event refreshes; map/terrain changes invalidate them. Globe maps fall back to
+the loaded terrain height when depth sampling is unavailable. Layer teardown
+removes the camera and render listeners.
+
 ## Cyber HUD — September 23, 2026
 
 Display > HUD > Layout includes Cyber, also available through the HUD voice
