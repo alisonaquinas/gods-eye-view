@@ -57,13 +57,12 @@ export async function lookupIndex(pool, query, now) {
       return null;
     rows = (
       await pool.query(
-        `SELECT DISTINCT ON(n.source_id,n.vertex_key,n.level) f.*,s.config AS source,n.latitude AS intersection_latitude,n.longitude AS intersection_longitude
-      FROM gev_gis_features f JOIN gev_gis_nodes n USING(source_id,object_id)
-      JOIN gev_gis_nodes m ON m.source_id=n.source_id AND m.vertex_key=n.vertex_key AND m.level=n.level AND m.object_id<>n.object_id
-      JOIN gev_gis_features g ON g.source_id=m.source_id AND g.object_id=m.object_id
-      JOIN gev_gis_sources s ON s.id=f.source_id
-      WHERE f.kind='STREET' AND n.level<>'unknown' AND f.street_keys @> ARRAY[$1]::text[] AND g.street_keys @> ARRAY[$2]::text[]
-      AND f.city_keys @> ARRAY[$3]::text[] AND g.city_keys @> ARRAY[$3]::text[] LIMIT 26`,
+        `SELECT c.*,c.object_ids[1] AS object_id,s.config AS source,
+       c.latitude AS intersection_latitude,c.longitude AS intersection_longitude
+       FROM gev_gis_crossings c JOIN gev_gis_sources s ON s.id=c.source_id
+       WHERE c.key_a=LEAST($1::text,$2::text) AND c.key_b=GREATEST($1::text,$2::text)
+        AND c.city_keys @> ARRAY[$3]::text[]
+       ORDER BY (s.config->>'priority')::int,c.source_id,c.vertex_key,c.level LIMIT 26`,
         [...streets, city],
       )
     ).rows;
@@ -88,6 +87,19 @@ export async function lookupIndex(pool, query, now) {
       objectId: String(row.object_id),
       indexedAt: new Date(Number(row.fetched_at)).toISOString(),
       stale,
+      ...(query.kind === 'INTERSECTION'
+        ? {
+            crossingEvidence: {
+              streets: [row.key_a, row.key_b],
+              objectIds: row.object_ids.map(String),
+              sourceId: row.source_id,
+              vertexKey: row.vertex_key,
+              level: row.level,
+              builtAt: new Date(Number(row.built_at)).toISOString(),
+              method: 'shared-endpoint-same-source-known-level',
+            },
+          }
+        : {}),
       location: {
         latitude: row.intersection_latitude ?? row.latitude,
         longitude: row.intersection_longitude ?? row.longitude,
@@ -98,7 +110,7 @@ export async function lookupIndex(pool, query, now) {
             300,
           ),
         source:
-          `${row.source.label}. ${detail}. Object ID ${row.object_id}; indexed ${new Date(Number(row.fetched_at)).toISOString()}. ${row.source.url}`.slice(
+          `${row.source.label}. ${detail}. Object ID${row.object_ids ? 's' : ''} ${row.object_ids ? row.object_ids.join(', ') : row.object_id}; indexed ${new Date(Number(row.fetched_at)).toISOString()}. ${row.source.url}`.slice(
             0,
             1000,
           ),

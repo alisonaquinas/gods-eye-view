@@ -57,7 +57,9 @@
     "gis:embeddings": "node scripts/gis-embeddings.mjs",
     "test:gis:embeddings": "node --test src/tooling/gisEmbeddings.test.mjs",
     "test:gis:search": "node --test src/tooling/gisNameSearch.test.mjs",
-    "test:usps": "node --test src/tooling/usps.test.mjs"
+    "test:usps": "node --test src/tooling/usps.test.mjs",
+    "gis:crossings": "node scripts/gis-crossings.mjs",
+    "test:gis:crossings": "node --test src/tooling/gisCrossings.test.mjs"
   },
   "dependencies": {
     "@jtarrio/signals": "^0.10.0",

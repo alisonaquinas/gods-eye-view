@@ -80,6 +80,15 @@
       ansible.builtin.stat:
         path: /etc/systemd/system/gev-gis-embeddings.service
       register: gev_old_embeddings
+    - name: Check whether a crossing worker exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/gev-gis-crossings.service
+      register: gev_old_crossings
+    - name: Stop the crossing worker before replacing its code
+      ansible.builtin.systemd_service:
+        name: gev-gis-crossings
+        state: stopped
+      when: gev_old_crossings.stat.exists
     - name: Stop the embedding worker before replacing its code
       ansible.builtin.systemd_service:
         name: gev-gis-embeddings
@@ -151,6 +160,13 @@
           ansible.builtin.template:
             src: ../systemd/gev-gis-embeddings.service.j2
             dest: /etc/systemd/system/gev-gis-embeddings.service
+            owner: root
+            group: root
+            mode: '0644'
+        - name: Install the independent crossing index worker
+          ansible.builtin.template:
+            src: ../systemd/gev-gis-crossings.service.j2
+            dest: /etc/systemd/system/gev-gis-crossings.service
             owner: root
             group: root
             mode: '0644'
@@ -230,6 +246,12 @@
               - once
               - --max-ticks
               - '1'
+        - name: Enable and start the crossing backfill and refresh worker
+          ansible.builtin.systemd_service:
+            name: gev-gis-crossings
+            enabled: true
+            state: started
+            daemon_reload: true
         - name: Enable and start the independent embedding backfill
           ansible.builtin.systemd_service:
             name: gev-gis-embeddings
@@ -247,7 +269,7 @@
             url: http://127.0.0.1:4173/api/locations/index/status
             return_content: true
           register: gev_running
-          until: gev_running.status == 200 and gev_running.json.running and gev_running.json.sources | length == 6 and gev_running.json.embeddings.running
+          until: gev_running.status == 200 and gev_running.json.running and gev_running.json.sources | length == 6 and gev_running.json.embeddings.running and gev_running.json.crossings.running
           retries: 8
           delay: 5
         - name: Verify public status API
@@ -270,9 +292,14 @@
               revision: '{{ gev_release }}'
               worker_running: '{{ gev_running.json.running }}'
               embeddings_running: '{{ gev_running.json.embeddings.running }}'
+              crossings_running: '{{ gev_running.json.crossings.running }}'
               sources: '{{ gev_running.json.sources | length }}'
               initial_import: Running independently; inspect the Address index panel for progress.
       rescue:
+        - name: Stop and disable the failed crossing worker
+          ansible.builtin.systemd_service:
+            { name: gev-gis-crossings, state: stopped, enabled: false }
+          failed_when: false
         - name: Stop and disable the failed embedding worker
           ansible.builtin.systemd_service:
             { name: gev-gis-embeddings, state: stopped, enabled: false }

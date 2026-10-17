@@ -39,6 +39,56 @@ postal and MSAG communities. A county-only record is indexed but cannot be assig
 a fabricated city. Street types, directions, house numbers, and units remain
 significant. No transcript text or incident detail is sent to GIS providers.
 
+## Stored street crossings
+
+The database also maintains `gev_gis_crossings`, a persistent index of valid
+street-name pairs. Every pair is unordered: `A & B`, `B & A`, and equivalent
+supported road abbreviations query the same records. Separate meeting points
+remain separate; distant or conflicting matches are returned as ambiguous.
+
+All configured street sources contribute independent evidence. A crossing needs
+two different roads with a shared published endpoint, a known equal elevation
+level **within the same source**, and a shared explicit locality. Street aliases
+can find a crossing but cannot create a crossing between two names of the same
+road. The index does not infer connections from lines passing through each other,
+nearby parallel roads, unknown elevations, or coincident endpoints in unrelated
+datasets. This conservatively excludes unverified overpasses and underpasses;
+missing records do not prove that a real intersection does not exist.
+
+The first migration queues existing road endpoints for backfill. Every successful
+street-area publication invalidates affected crossing records in the same
+transaction and queues old and new endpoints, including roads moved between
+areas and junctions shared with neighboring areas. Failed or incomplete source
+imports preserve the prior index. The `gev-gis-crossings` systemd service rebuilds
+up to 250 queued nodes per transaction with one second between batches, independently
+of upstream GIS rate limits. It uses only the local database and makes no external
+requests. Work survives restarts and failed batches. Street imports continue on
+the existing 60-day rolling cycle, so derived crossings refresh automatically.
+
+The resolver and phonetic intersection search use this table. Responses retain
+both roads' object IDs, source, shared endpoint, elevation and build time in
+`crossingEvidence`. Freshness uses the older supporting road record. Unknown
+localities and stale source evidence cannot become automatic accepted pins.
+
+The **Street crossings** disclosure in the Address index panel shows indexed
+name-pair records, pending updates, worker health and last update. Counts include
+aliases and separate sources, not a claim of unique physical intersections.
+The same data is in `GET /api/locations/index/status` under `crossings`.
+
+```sh
+npm run gis:crossings -- status
+npm run gis:crossings -- run     # supervised service: continuous backfill/refresh
+npm run gis:crossings -- once    # drain the current local queue, then exit
+npm run gis:crossings -- pause
+npm run gis:crossings -- resume
+```
+
+These commands require the same server-side database environment as the GIS
+worker. `GEV_GIS_SCHEMA` can select an isolated test schema. Tests include reversed
+street order, multiple crossings, source conflicts, bridge exclusions, locality,
+aliases, freshness, area changes, migration backfill, and restart/ownership safety:
+`npm run test:gis:crossings` with an isolated `GEV_GIS_TEST_DATABASE_URL`.
+
 ## Operation
 
 Node 24.14+ and the existing `DATABASE_URL` are required. The CLI does not load

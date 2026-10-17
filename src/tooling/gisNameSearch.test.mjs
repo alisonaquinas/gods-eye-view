@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { GisIndexStore } from '../../server/providers/gis-index/store.js';
+import {
+  rebuildCrossings,
+  invalidateAreaCrossings,
+} from '../../server/providers/gis-index/crossings.js';
 import { EmbeddingStore } from '../../server/providers/gis-index/embeddings/store.js';
 import { normalizeFeature } from '../../server/providers/gis-index/normalize.js';
 import {
@@ -423,6 +427,7 @@ test(
         reasons: {},
       });
       await f.store.finishArea(area, 60 * 86400000);
+      while (await rebuildCrossings(f.store)) {}
       await f.prepare();
       const q = {
         ...query,
@@ -442,6 +447,10 @@ test(
       await f.store.pool.query(
         "UPDATE gev_gis_nodes SET level='1' WHERE source_id='roads' AND object_id=2",
       );
+      await f.store.transaction((c) =>
+        invalidateAreaCrossings(c, area, f.store.now()),
+      );
+      while (await rebuildCrossings(f.store)) {}
       assert.equal((await f.search()(q)).candidates.length, 0);
     } finally {
       await f.close();

@@ -10,6 +10,11 @@ import { searchSchemaSql } from './search-schema.js';
 import { createNameSearch } from './search.js';
 import { annotateZones } from './search-zones.js';
 import { uspsSchemaSql } from '../locations/usps-store.js';
+import {
+  crossingSchemaSql,
+  invalidateAreaCrossings,
+  crossingStatus,
+} from './crossings.js';
 
 const numberFields = [
   'cursor',
@@ -41,10 +46,13 @@ export class GisIndexStore {
   ) {
     if (!/^[a-z][a-z0-9_]{0,62}$/.test(schema))
       throw new Error('Invalid GIS database schema.');
-    if (!['index', 'embeddings'].includes(worker))
+    if (!['index', 'embeddings', 'crossings'].includes(worker))
       throw new Error('Invalid GIS worker type.');
-    this.controlTable =
-      worker === 'index' ? 'gev_gis_control' : 'gev_gis_embedding_control';
+    this.controlTable = {
+      index: 'gev_gis_control',
+      embeddings: 'gev_gis_embedding_control',
+      crossings: 'gev_gis_crossing_control',
+    }[worker];
     this.lockKey = `gev-gis-${worker}-worker`;
     this.schema = schema;
     this.now = now;
@@ -75,6 +83,7 @@ export class GisIndexStore {
           ['gis-name-embeddings-v1', embeddingSchemaSql],
           ['gis-name-search-v1', searchSchemaSql],
           ['location-provider-budgets-v1', uspsSchemaSql],
+          ['gis-street-crossings-v1', crossingSchemaSql],
         ]) {
           const applied = await client.query(
             'SELECT id FROM gev_gis_migrations WHERE id=$1',
@@ -343,6 +352,7 @@ export class GisIndexStore {
           ),
           { permanent: true },
         );
+      await invalidateAreaCrossings(client, area, this.now());
       await client.query(
         'DELETE FROM gev_gis_features WHERE source_id=$1 AND area_key=$2',
         [area.source_id, area.area_key],
@@ -373,6 +383,7 @@ export class GisIndexStore {
         FROM gev_gis_stage CROSS JOIN LATERAL jsonb_array_elements(record->'nodes') n WHERE source_id=$1 AND area_key=$2 AND generation=$3`,
         [area.source_id, area.area_key, area.generation],
       );
+      await invalidateAreaCrossings(client, area, this.now());
       const delay =
         current.finished_at === null
           ? Math.max(
@@ -455,6 +466,7 @@ export class GisIndexStore {
       windowRequests: control.window_requests,
       settings: control.config,
       embeddings: await embeddingStatus(this),
+      crossings: await crossingStatus(this),
       coverage:
         'Includes published source records, not a guarantee of every real address. Source coverage and update dates vary. Unmatched locations can still use the existing geocoders.',
       sources: rows.map((row) => ({

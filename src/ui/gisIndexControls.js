@@ -180,6 +180,57 @@ export function createGisIndexControls(
         }
         fragment.append(details);
       }
+      if (data.crossings) {
+        const crossings = data.crossings;
+        const details = element('details', '', 'gis-index-source');
+        details.dataset.source = 'street-crossings';
+        details.open = openSources.has('street-crossings');
+        const summary = element('summary');
+        summary.append(
+          element('span', 'Street crossings'),
+          element(
+            'span',
+            `${number(crossings.pairs)} indexed pairs`,
+            'gis-index-source-count',
+          ),
+        );
+        const state = crossings.paused
+          ? 'Paused'
+          : !crossings.running
+            ? 'Worker not reporting'
+            : crossings.error
+              ? 'Retry pending'
+              : crossings.pending
+                ? 'Updating crossings'
+                : 'Caught up with indexed streets';
+        details.append(
+          summary,
+          element('p', state),
+          element(
+            'p',
+            `${number(crossings.pending)} updates pending · last updated ${date(crossings.lastBuiltAt)}`,
+            'gis-index-note',
+          ),
+          element(
+            'p',
+            'A & B and B & A find the same crossings. Separate meeting points remain separate.',
+            'gis-index-note',
+          ),
+          element(
+            'p',
+            'Refreshes with street imports throughout the 60-day cycle. Requires connected endpoints at a known matching elevation; overpasses and uncertain connections are excluded.',
+            'gis-index-note',
+          ),
+          element(
+            'p',
+            'Counts include source records and street aliases, not unique junctions. Coverage grows with the address index.',
+            'gis-index-note',
+          ),
+        );
+        if (crossings.error)
+          details.append(element('p', crossings.error, 'gis-index-error'));
+        fragment.append(details);
+      }
       if (data.embeddings) {
         const embeddings = data.embeddings;
         const details = element('details', '', 'gis-index-source');

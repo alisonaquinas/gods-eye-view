@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { initialProgress } from '../../server/providers/gis-index/progress.js';
 import { GisIndexStore } from '../../server/providers/gis-index/store.js';
+import { rebuildCrossings } from '../../server/providers/gis-index/crossings.js';
 import { GisIndexWorker } from '../../server/providers/gis-index/worker.js';
 import { normalizeFeature } from '../../server/providers/gis-index/normalize.js';
 import {
@@ -435,6 +436,7 @@ test(
       await f.store.finishArea(area, CYCLE_MS);
       const find = (address) =>
         f.store.lookup({ ...query, address, kind: 'INTERSECTION' });
+      while (await rebuildCrossings(f.store)) {}
       const intersection = await find('First St & Second St');
       assert.equal(intersection.status, 'RESOLVED');
       assert.equal(intersection.candidates[0].location.longitude, -84.41);

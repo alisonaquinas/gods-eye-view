@@ -34,6 +34,12 @@ and precision. Named places linked to source address records are also available
 as `LANDMARK` matches, with their underlying record identified in the provenance.
 Conflicts and stale indexed matches require review.
 
+Intersections use the maintained [street crossing index](GIS-ADDRESS-INDEX.md#stored-street-crossings).
+Street order is interchangeable: `A & B` and `B & A` use the same unordered pair.
+Distinct junctions remain distinct candidates. `crossingEvidence` identifies both
+supporting roads, their shared endpoint and known matching elevation; freshness
+depends on both records. Crossing updates require no additional geocoder calls.
+
 For locations absent from the index, the resolver uses the US Census Bureau structured address
 service and, in Georgia, the City of Atlanta street-centerline geocoder. These
 are fixed upstreams with redirects disabled, 12-second timeouts, bounded replies,
