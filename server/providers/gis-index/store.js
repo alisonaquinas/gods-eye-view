@@ -10,6 +10,12 @@ import { searchSchemaSql } from './search-schema.js';
 import { createNameSearch } from './search.js';
 import { annotateZones } from './search-zones.js';
 import { uspsSchemaSql } from '../locations/usps-store.js';
+import { placeSchemaSql } from '../place-registry/schema.js';
+import { listPlaces, placeStatus } from '../place-registry/store.js';
+import {
+  publicPlaceSchemaSql,
+  publicPlaceStatus,
+} from '../place-registry/public-gis.js';
 import {
   crossingSchemaSql,
   invalidateAreaCrossings,
@@ -46,12 +52,13 @@ export class GisIndexStore {
   ) {
     if (!/^[a-z][a-z0-9_]{0,62}$/.test(schema))
       throw new Error('Invalid GIS database schema.');
-    if (!['index', 'embeddings', 'crossings'].includes(worker))
+    if (!['index', 'embeddings', 'crossings', 'places'].includes(worker))
       throw new Error('Invalid GIS worker type.');
     this.controlTable = {
       index: 'gev_gis_control',
       embeddings: 'gev_gis_embedding_control',
       crossings: 'gev_gis_crossing_control',
+      places: 'gev_place_control',
     }[worker];
     this.lockKey = `gev-gis-${worker}-worker`;
     this.schema = schema;
@@ -84,6 +91,8 @@ export class GisIndexStore {
           ['gis-name-search-v1', searchSchemaSql],
           ['location-provider-budgets-v1', uspsSchemaSql],
           ['gis-street-crossings-v1', crossingSchemaSql],
+          ['gev-place-registry-v1', placeSchemaSql],
+          ['gev-public-places-v1', publicPlaceSchemaSql],
           [
             'gis-street-crossings-v2',
             `INSERT INTO gev_gis_crossing_queue(source_id,vertex_key,level,queued_at)
@@ -360,6 +369,10 @@ export class GisIndexStore {
         );
       await invalidateAreaCrossings(client, area, this.now());
       await client.query(
+        `DELETE FROM gev_places p USING gev_gis_stage s WHERE p.origin_source_id=s.source_id AND p.origin_object_id=s.object_id AND s.source_id=$1 AND s.area_key=$2`,
+        [area.source_id, area.area_key],
+      );
+      await client.query(
         'DELETE FROM gev_gis_features WHERE source_id=$1 AND area_key=$2',
         [area.source_id, area.area_key],
       );
@@ -370,7 +383,7 @@ export class GisIndexStore {
         record->>'region',record->>'county',record->>'postalCode',(record->>'latitude')::float8,(record->>'longitude')::float8,record->'geometry',record->>'stableId',(record->>'sourceUpdatedAt')::bigint,$4,ARRAY(SELECT jsonb_array_elements_text(record->'placeNames'))
         FROM gev_gis_stage WHERE source_id=$1 AND area_key=$2 AND generation=$3
         ON CONFLICT(source_id,object_id) DO UPDATE SET area_key=excluded.area_key,kind=excluded.kind,address=excluded.address,address_key=excluded.address_key,street=excluded.street,street_keys=excluded.street_keys,
-        cities=excluded.cities,city_keys=excluded.city_keys,region=excluded.region,county=excluded.county,postal_code=excluded.postal_code,latitude=excluded.latitude,longitude=excluded.longitude,geometry=excluded.geometry,stable_id=excluded.stable_id,source_updated_at=excluded.source_updated_at,fetched_at=excluded.fetched_at,place_names=excluded.place_names,names_revision=0`,
+        cities=excluded.cities,city_keys=excluded.city_keys,region=excluded.region,county=excluded.county,postal_code=excluded.postal_code,latitude=excluded.latitude,longitude=excluded.longitude,geometry=excluded.geometry,stable_id=excluded.stable_id,source_updated_at=excluded.source_updated_at,fetched_at=excluded.fetched_at,place_names=excluded.place_names,names_revision=0,place_registry_revision=0,place_registry_error=NULL`,
         [area.source_id, area.area_key, area.generation, this.now()],
       );
       // Reset name links when a source feature moves from a neighboring area.
@@ -473,6 +486,10 @@ export class GisIndexStore {
       settings: control.config,
       embeddings: await embeddingStatus(this),
       crossings: await crossingStatus(this),
+      places: {
+        ...(await placeStatus(this)),
+        collection: await publicPlaceStatus(this),
+      },
       coverage:
         'Includes published source records, not a guarantee of every real address. Source coverage and update dates vary. Unmatched locations can still use the existing geocoders.',
       sources: rows.map((row) => ({
@@ -502,6 +519,9 @@ export class GisIndexStore {
   async lookup(query) {
     await this.initialize();
     return lookupIndex(this.pool, query, this.now());
+  }
+  async places(query) {
+    return listPlaces(this, query);
   }
   async suggest(query) {
     await this.initialize();

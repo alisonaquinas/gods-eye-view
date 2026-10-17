@@ -2,14 +2,20 @@ import { normalizeAddress, distanceMeters } from '../locations/matching.js';
 import { cityKey } from './normalize.js';
 import { CYCLE_MS } from './catalog.js';
 import { prepareName, NAME_RECIPE } from './embeddings/names.js';
+import { lookupPlaces } from '../place-registry/store.js';
 
 /** Exact components and explicit source locality only. No fuzzy automatic pinning. */
 export async function lookupIndex(pool, query, now) {
   if (
     query.region !== 'GA' ||
-    !['ADDRESS', 'STREET', 'INTERSECTION', 'LANDMARK'].includes(query.kind)
+    !['ADDRESS', 'STREET', 'INTERSECTION', 'LANDMARK', 'AREA'].includes(
+      query.kind,
+    )
   )
     return null;
+  const place = await lookupPlaces(pool, query, now);
+  if (place) return place;
+  if (query.kind === 'AREA') return null;
   const city = cityKey(query.city),
     key = normalizeAddress(query.address);
   const base = `SELECT f.*,s.config AS source FROM gev_gis_features f JOIN gev_gis_sources s ON s.id=f.source_id`;

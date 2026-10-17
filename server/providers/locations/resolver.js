@@ -175,12 +175,14 @@ export function createAddressResolver({
           return {
             ...base,
             candidates: checked,
+            ...(indexed.places ? { places: indexed.places } : {}),
             status: resolved ? 'RESOLVED' : 'AMBIGUOUS',
             ...(resolved && selected
               ? {
                   location: selected.location,
                   saveInput: {
-                    canonicalAddress: selected.address,
+                    canonicalAddress:
+                      selected.canonicalAddress || selected.address,
                     city: selected.city,
                     region: query.region,
                     country: 'US',

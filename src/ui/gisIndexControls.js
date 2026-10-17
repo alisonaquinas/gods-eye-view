@@ -231,6 +231,69 @@ export function createGisIndexControls(
           details.append(element('p', crossings.error, 'gis-index-error'));
         fragment.append(details);
       }
+      if (data.places) {
+        const places = data.places;
+        const details = element('details', '', 'gis-index-source');
+        details.dataset.source = 'place-registry';
+        details.open = openSources.has('place-registry');
+        const summary = element('summary');
+        summary.append(
+          element('span', 'Place registry'),
+          element(
+            'span',
+            `${number(places.total)} places`,
+            'gis-index-source-count',
+          ),
+        );
+        const link = element('a', 'Browse airport place records ↗');
+        link.href = '/api/locations/places?collection=atl-airport&limit=100';
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        details.append(
+          summary,
+          element(
+            'p',
+            `${number(places.mapped)} mapped · ${number(places.unlocated)} awaiting coordinates`,
+          ),
+          element(
+            'p',
+            'Airport facilities and named places from public GIS data. Aliases share one record; each place keeps its source links.',
+            'gis-index-note',
+          ),
+          element(
+            'p',
+            'Facility points are approximate. A checkpoint without verified coordinates stays unlocated.',
+            'gis-index-note',
+          ),
+          element(
+            'p',
+            `${number(places.review_due)} due for source review · last changed ${date(places.updated_at)}`,
+            'gis-index-note',
+          ),
+          link,
+        );
+        if (places.collection)
+          details.append(
+            element(
+              'p',
+              `${number(places.collection.public_records)} places from official address records · ${number(places.collection.pending)} records awaiting collection. ${places.collection.paused ? 'Collection paused.' : places.collection.running ? 'Collector running.' : 'Collector not reporting.'}`,
+              'gis-index-note',
+            ),
+          );
+        if (places.collection?.rejected)
+          details.append(
+            element(
+              'p',
+              `${number(places.collection.rejected)} source records need review; collection continues. Corrected records are retried on the next GIS refresh.`,
+              'gis-index-error',
+            ),
+          );
+        if (places.collection?.error)
+          details.append(
+            element('p', places.collection.error, 'gis-index-error'),
+          );
+        fragment.append(details);
+      }
       if (data.embeddings) {
         const embeddings = data.embeddings;
         const details = element('details', '', 'gis-index-source');
@@ -252,11 +315,13 @@ export function createGisIndexControls(
             ? 'Worker not reporting'
             : embeddings.error
               ? 'Retry pending'
-              : embeddings.preparingNames
-                ? 'Preparing indexed names'
-                : embeddings.pending
-                  ? 'Backfill running'
-                  : 'Caught up with indexed names';
+              : embeddings.budgetWaiting
+                ? `Hourly budget reached · resumes ${date(embeddings.nextRequestAt)}`
+                : embeddings.preparingNames
+                  ? 'Preparing indexed names'
+                  : embeddings.pending
+                    ? 'Backfill running'
+                    : 'Caught up with indexed names';
         details.append(
           element('p', state),
           element(
