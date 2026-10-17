@@ -84,6 +84,12 @@ export class GisIndexStore {
           ['gis-name-search-v1', searchSchemaSql],
           ['location-provider-budgets-v1', uspsSchemaSql],
           ['gis-street-crossings-v1', crossingSchemaSql],
+          [
+            'gis-street-crossings-v2',
+            `INSERT INTO gev_gis_crossing_queue(source_id,vertex_key,level,queued_at)
+            SELECT DISTINCT source_id,vertex_key,level,0 FROM gev_gis_nodes WHERE level<>'unknown'
+            ON CONFLICT(source_id,vertex_key,level) DO UPDATE SET queued_at=excluded.queued_at`,
+          ],
         ]) {
           const applied = await client.query(
             'SELECT id FROM gev_gis_migrations WHERE id=$1',

@@ -88,7 +88,9 @@ export async function rebuildCrossings(store, limit = 250) {
        CROSS JOIN LATERAL unnest(ARRAY[f.object_id,g.object_id]) AS evidence(id)
        WHERE n.level<>'unknown' AND f.kind='STREET' AND g.kind='STREET'
         AND f.region='GA' AND g.region='GA' AND a.key<>b.key
-        AND NOT(f.street_keys && g.street_keys) AND g.city_keys @> ARRAY[city.key]::text[]
+        AND f.street_keys[1]<>g.street_keys[1]
+        AND NOT(a.key=ANY(g.street_keys)) AND NOT(b.key=ANY(f.street_keys))
+        AND g.city_keys @> ARRAY[city.key]::text[]
        GROUP BY n.source_id,n.vertex_key,n.level,LEAST(a.key,b.key),GREATEST(a.key,b.key)`,
       [keys, store.now()],
     );

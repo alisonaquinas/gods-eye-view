@@ -243,6 +243,52 @@ test(
 );
 
 test(
+  'different road types sharing a shortened alias still form a valid crossing',
+  { skip: !connection },
+  async () => {
+    const f = await fixture();
+    try {
+      await f.publish([
+        road(
+          1,
+          'Oak',
+          [
+            [-84.43, 33.72],
+            [-84.42, 33.72],
+          ],
+          { st_postyp: 'Ave', alias_stnm: 'Oak' },
+        ),
+        road(
+          2,
+          'Oak',
+          [
+            [-84.42, 33.72],
+            [-84.42, 33.73],
+          ],
+          { st_postyp: 'Pl', alias_stnm: 'Oak' },
+        ),
+      ]);
+      await f.drain();
+      for (const address of [
+        'Oak Ave SW & Oak Pl SW',
+        'Oak Pl SW & Oak Ave SW',
+      ])
+        assert.equal(
+          (await f.store.lookup({ ...query, address })).status,
+          'RESOLVED',
+        );
+      assert.equal(
+        await f.store.lookup({ ...query, address: 'Oak & Oak Ave SW' }),
+        null,
+        'A shortened alias shared by both roads is not a unique street identity.',
+      );
+    } finally {
+      await f.close();
+    }
+  },
+);
+
+test(
   'multiple real crossings and conflicting sources stay separate in both orders; both roads must be fresh',
   { skip: !connection },
   async () => {
