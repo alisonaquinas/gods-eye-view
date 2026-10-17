@@ -88,8 +88,17 @@ try {
   await page.waitForFunction(() => window.__godsEyeView?.dataManager, {
     timeout: 60000,
   });
+  await page.waitForFunction(
+    () =>
+      document.getElementById('loading-screen')?.classList.contains('hidden'),
+    { timeout: 60000 },
+  );
   await page.evaluate(async () => {
     const app = window.__godsEyeView;
+    app.styleManager.setPanelCollapsed('data-panel', false, {
+      persist: false,
+      syncShare: false,
+    });
     for (const layer of app.dataManager.getAll())
       if (layer.enabled) await app.dataManager.setEnabled(layer.id, false);
     await app.styleManager.mapStackController.setStack('osm');
@@ -142,6 +151,77 @@ try {
   assert.deepEqual(result.error, []);
   assert.deepEqual(result.p25.sort(), ['1', '2']);
   assert.equal(result.points.length, 2);
+  const links = () =>
+    page.evaluate(() => {
+      const root = document.querySelector(
+        '[data-layer-id="p25-events"] .p25-controls',
+      );
+      const selected = root.querySelector('.p25-source');
+      return {
+        reports: [...root.querySelectorAll('.p25-report-link')].map(
+          (link) => link.href,
+        ),
+        selected: selected.getAttribute('href'),
+        hidden: selected.hidden,
+        pressed: [...root.querySelectorAll('button[aria-pressed="true"]')].map(
+          (button) => button.dataset.eventId,
+        ),
+      };
+    });
+  const expectedLinks = ['1', '2'].map(
+    (id) => `https://sdr.alisonaquinas.pro/p25/events/${id}`,
+  );
+  assert.deepEqual((await links()).reports.sort(), expectedLinks);
+  assert.equal((await links()).selected, null);
+  assert.equal((await links()).hidden, true);
+  // The list buttons still select their report after gaining sibling links.
+  await page.evaluate(() =>
+    document.querySelector('.p25-event-list button[data-event-id="2"]').click(),
+  );
+  await page.waitForFunction(() =>
+    document
+      .querySelector('.p25-source')
+      ?.getAttribute('href')
+      ?.endsWith('/events/2'),
+  );
+  assert.equal((await links()).selected, expectedLinks[1]);
+  assert.deepEqual((await links()).pressed, ['2']);
+  await page.evaluate(async () => {
+    await window.__godsEyeView.dataManager.layers
+      .get('p25-events')
+      .module.getRowControls()
+      .p25.refresh();
+  });
+  assert.equal((await links()).selected, expectedLinks[1]);
+  await page.evaluate(() => {
+    window.__godsEyeView.dataManager.layers
+      .get('p25-events')
+      .module.getRowControls()
+      .p25.select(null);
+  });
+  await page.waitForFunction(
+    () => document.querySelector('.p25-source')?.hidden,
+  );
+  assert.equal((await links()).selected, null);
+  assert.equal((await links()).hidden, true);
+  assert.deepEqual((await links()).reports.sort(), expectedLinks);
+  const popupPromise = new Promise((resolve, reject) => {
+    const timeout = setTimeout(
+      () => reject(new Error('Report link did not open')),
+      10000,
+    );
+    page.once('popup', (popup) => {
+      clearTimeout(timeout);
+      resolve(popup);
+    });
+  });
+  await page.evaluate(() => document.querySelector('.p25-report-link').click());
+  const popup = await popupPromise;
+  assert.equal(popup.url(), expectedLinks[0]);
+  await popup.close();
+  console.log(
+    'PASS: report permalinks survive selection changes and refresh; clicking opens the individual SDR event.',
+  );
   await toggle('atlanta-crime', true);
   result = await state();
   assert.deepEqual(result.error, []);

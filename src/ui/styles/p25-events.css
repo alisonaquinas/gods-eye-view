@@ -84,12 +84,14 @@
   overflow-y: auto;
   scrollbar-width: thin;
 }
+.p25-event {
+  border-bottom: 1px solid var(--glass-border, #596676);
+}
 .p25-event-list button {
   display: block;
   width: 100%;
   padding: 9px 4px;
   border: 0;
-  border-bottom: 1px solid var(--glass-border, #596676);
   background: transparent;
   color: inherit;
   text-align: left;
@@ -129,6 +131,13 @@
   font-size: 12px;
   line-height: 1.5;
   overflow-wrap: anywhere;
+}
+.p25-report-link {
+  display: inline-block;
+  padding: 4px;
+  margin-bottom: 5px;
+  color: var(--accent, #5edbd5);
+  text-underline-offset: 3px;
 }
 .p25-source {
   display: inline-block;

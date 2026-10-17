@@ -59,8 +59,8 @@ export function createP25EventsControls(container, apply) {
       <div class="p25-organizations" role="group" aria-label="Departments and organizations" hidden></div>
       <p class="p25-location"></p>
       <p class="p25-report"></p><p class="p25-provenance"></p><div class="p25-apd-links"></div>
-    </section>
-    <a class="p25-source" href="https://sdr.alisonaquinas.pro/p25" target="_blank" rel="noopener noreferrer">Open SDR event log ↗</a>`;
+      <a class="p25-source" target="_blank" rel="noopener noreferrer" hidden>Open SDR report ↗</a>
+    </section>`;
   container.appendChild(root);
   const form = root.querySelector('form');
   const choice = form.elements.window;
@@ -189,6 +189,8 @@ export function createP25EventsControls(container, apply) {
         listSignature = nextList;
         list.replaceChildren();
         for (const event of value.entries) {
+          const row = doc.createElement('div');
+          row.className = 'p25-event';
           const button = doc.createElement('button');
           button.type = 'button';
           button.dataset.eventId = event.id;
@@ -203,10 +205,22 @@ export function createP25EventsControls(container, apply) {
             summary.textContent = `APD records: ${event.apdLinks.length}${event.apdLinks.some((l) => l.status === 'POSSIBLE' || l.stale) ? ' · Review needed' : ' · Reviewed matches'}`;
             button.appendChild(summary);
           }
-          list.appendChild(button);
+          row.appendChild(button);
+          const report = doc.createElement('a');
+          report.className = 'p25-report-link';
+          report.href = `https://sdr.alisonaquinas.pro/p25/events/${encodeURIComponent(event.id)}`;
+          report.target = '_blank';
+          report.rel = 'noopener noreferrer';
+          report.textContent = 'Open SDR report ↗';
+          report.setAttribute(
+            'aria-label',
+            `Open SDR report ${event.id}: ${event.title}`,
+          );
+          row.appendChild(report);
+          list.appendChild(row);
         }
       }
-      for (const button of list.children)
+      for (const button of list.querySelectorAll('button[data-event-id]'))
         button.setAttribute(
           'aria-pressed',
           String(button.dataset.eventId === value.selectedId),
@@ -214,9 +228,11 @@ export function createP25EventsControls(container, apply) {
       const selected = value.entries.find(
         (event) => event.id === value.selectedId,
       );
-      root.querySelector('.p25-source').href = selected
-        ? `https://sdr.alisonaquinas.pro/p25/events/${encodeURIComponent(selected.id)}`
-        : 'https://sdr.alisonaquinas.pro/p25';
+      const reportLink = root.querySelector('.p25-source');
+      reportLink.hidden = !selected;
+      if (selected)
+        reportLink.href = `https://sdr.alisonaquinas.pro/p25/events/${encodeURIComponent(selected.id)}`;
+      else reportLink.removeAttribute('href');
       const detail = root.querySelector('.p25-selected');
       detail.hidden = !selected;
       if (selected) {

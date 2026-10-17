@@ -26,7 +26,9 @@ the selected event report, including events without geotags. Full canonical name
 wrap within the panel; hover a tag to see its equivalent aliases. Tags refresh
 with the event snapshot, including additions or removals to an existing event.
 GEV reads these tags from GraphQL and does not infer agency participation or edit
-tags. Selecting a tagged event still opens its individual SDR permalink.
+tags. Every event row has an **Open SDR report** permalink, including reports without
+geotags. The selected report also has its own permalink. Report links never
+fall back to the SDR index when selection is cleared.
 
 The server's fixed, read-only `/api/p25-events` adapter calls
 `P25_GRAPHQL_URL` (default `https://sdr.alisonaquinas.pro/api/graphql`) with
