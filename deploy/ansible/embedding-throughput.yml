@@ -1,0 +1,176 @@
+---
+- name: Deploy unlimited name embeddings to GEV
+  hosts: gev
+  gather_facts: false
+  vars:
+    gev_source: /opt/gods-eye-view
+    gev_expected: 18f392c9959ac7efaa9021a2c73ae2d35256f6ea
+    gev_account: gods-eye-view
+    gev_services:
+      - gods-eye-view
+      - gev-gis-embeddings
+      - gev-gis-index
+      - gev-gis-crossings
+      - gev-places
+  tasks:
+    - name: Require an exact tested release commit
+      ansible.builtin.assert:
+        that:
+          - gev_release is defined
+          - gev_release is match('^[0-9a-f]{40}$')
+    - name: Read the running source revision
+      ansible.builtin.command: git rev-parse HEAD
+      args:
+        chdir: '{{ gev_source }}'
+      become: true
+      become_user: '{{ gev_account }}'
+      vars:
+        ansible_become: true
+      register: gev_previous
+      changed_when: false
+    - name: Check for tracked deployment changes
+      ansible.builtin.command: git status --porcelain --untracked-files=no
+      args:
+        chdir: '{{ gev_source }}'
+      become: true
+      become_user: '{{ gev_account }}'
+      vars:
+        ansible_become: true
+      register: gev_dirty
+      changed_when: false
+    - name: Require the inspected source revision and clean tracked files
+      ansible.builtin.assert:
+        that:
+          - gev_previous.stdout in [gev_expected, gev_release]
+          - gev_dirty.stdout == ''
+    - name: Fetch the tested release before interrupting services
+      ansible.builtin.command:
+        argv: [git, fetch, origin, refs/heads/codex/unlimited-name-embeddings]
+        chdir: '{{ gev_source }}'
+      become: true
+      become_user: '{{ gev_account }}'
+      vars:
+        ansible_become: true
+      environment:
+        GIT_SSH_COMMAND: ssh -i /var/lib/gods-eye-view/.ssh/id_ed25519_github -o IdentitiesOnly=yes -o BatchMode=yes
+      changed_when: false
+    - name: Require a release that includes the running revision
+      ansible.builtin.command:
+        argv: [git, merge-base, --is-ancestor, '{{ gev_previous.stdout }}', '{{ gev_release }}']
+        chdir: '{{ gev_source }}'
+      become: true
+      become_user: '{{ gev_account }}'
+      vars:
+        ansible_become: true
+      changed_when: false
+    - name: Require the embedding API with queued inference
+      ansible.builtin.uri:
+        url: https://embedding.alisonaquinas.pro/openapi.json
+        return_content: true
+      register: embedding_schema
+      failed_when: embedding_schema.json.info.version is version('1.2.1', '<')
+    - name: Verify both embedding models are ready
+      ansible.builtin.uri:
+        url: https://embedding.alisonaquinas.pro/health/ready
+        return_content: true
+      register: embedding_ready
+      failed_when: embedding_ready.json.status != 'ok'
+    - name: Back up worker settings for rollback
+      ansible.builtin.slurp:
+        src: /etc/gods-eye-view/gis-index.env
+      register: gev_previous_settings
+      no_log: true
+    - name: Activate unlimited embedding requests and verify
+      block:
+        - name: Stop services for a consistent source checkout
+          ansible.builtin.systemd_service:
+            name: '{{ item }}'
+            state: stopped
+          loop: '{{ gev_services }}'
+        - name: Activate the exact tested commit
+          ansible.builtin.command:
+            argv: [git, checkout, --detach, '{{ gev_release }}']
+            chdir: '{{ gev_source }}'
+          become: true
+          become_user: '{{ gev_account }}'
+          vars:
+            ansible_become: true
+          changed_when: gev_previous.stdout != gev_release
+        - name: Remove the embedding delay and hourly quota
+          ansible.builtin.lineinfile:
+            path: /etc/gods-eye-view/gis-index.env
+            regexp: '^{{ item }}='
+            line: '{{ item }}=0'
+            mode: '0600'
+          loop:
+            - GEV_GIS_EMBEDDING_INTERVAL_MS
+            - GEV_GIS_EMBEDDING_REQUESTS_PER_HOUR
+        - name: Resume services from their durable checkpoints
+          ansible.builtin.systemd_service:
+            name: '{{ item }}'
+            state: started
+          loop: '{{ gev_services }}'
+        - name: Verify the live worker adopted unlimited settings
+          ansible.builtin.uri:
+            url: http://127.0.0.1:4173/api/locations/index/status
+            return_content: true
+          register: gev_status
+          until: >-
+            gev_status.status == 200 and
+            gev_status.json.embeddings.running and
+            gev_status.json.embeddings.settings.intervalMs == 0 and
+            gev_status.json.embeddings.settings.hourlyLimit == 0 and
+            not gev_status.json.embeddings.budgetWaiting
+          retries: 15
+          delay: 2
+        - name: Verify the public HTTPS homepage
+          ansible.builtin.uri:
+            url: https://gev.alisonaquinas.pro/
+            status_code: 200
+          delegate_to: localhost
+          become: false
+        - name: Persist the deployed revision in the controller inventory
+          ansible.builtin.lineinfile:
+            path: /root/home-cluster/inventory/production/host_vars/gev.yml
+            regexp: '^gods_eye_view_repository_version:'
+            line: 'gods_eye_view_repository_version: {{ gev_release }}'
+            backup: true
+          delegate_to: localhost
+          become: false
+        - name: Report the resumed embedding queue
+          ansible.builtin.debug:
+            msg:
+              revision: '{{ gev_release }}'
+              complete: '{{ gev_status.json.embeddings.complete }}'
+              pending: '{{ gev_status.json.embeddings.pending }}'
+              settings: '{{ gev_status.json.embeddings.settings }}'
+      rescue:
+        - name: Stop the failed release
+          ansible.builtin.systemd_service:
+            name: '{{ item }}'
+            state: stopped
+          loop: '{{ gev_services }}'
+        - name: Restore the previous commit
+          ansible.builtin.command:
+            argv: [git, checkout, --detach, '{{ gev_previous.stdout }}']
+            chdir: '{{ gev_source }}'
+          become: true
+          become_user: '{{ gev_account }}'
+          vars:
+            ansible_become: true
+        - name: Restore the previous worker settings
+          ansible.builtin.copy:
+            dest: /etc/gods-eye-view/gis-index.env
+            content: '{{ gev_previous_settings.content | b64decode }}'
+            owner: root
+            group: root
+            mode: '0600'
+          no_log: true
+        - name: Restart the previous release
+          ansible.builtin.systemd_service:
+            name: '{{ item }}'
+            state: started
+          loop: '{{ gev_services }}'
+        - name: Report rollback
+          ansible.builtin.fail:
+            msg: Embedding deployment failed verification; the previous source and settings were restored.

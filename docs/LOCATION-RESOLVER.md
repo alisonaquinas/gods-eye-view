@@ -162,14 +162,13 @@ override an otherwise exact address or authorize saving a phonetic suggestion.
 Query embeddings reuse the indexed word/name vectors first, then a durable,
 seven-day cache capped at 2,000 vectors. Only normalized street/place names and
 word tokens go to the fixed local embedding service; house/unit numbers and
-incident content do not. Interactive inference has a persistent 60-request/hour
-budget, at most two requests per search (including both intersection names),
+incident content do not. Interactive inference has no hourly quota or fixed
+delay by default, with at most two requests per search (including both intersection names),
 four-second request timeouts, validated response dimensions and Retry-After
-cooldown. Its minimum two-second request spacing is shared with the background
-embedding worker; its small hourly allowance is additional to that worker's
-configured budget. At most two name searches run concurrently per server.
+cooldown. Any explicitly configured background embedding request spacing is
+shared with interactive requests. At most two name searches run concurrently per server.
 
-Budget exhaustion, unsupported pronunciation or service failure keeps available
+Cooldowns, optional pacing, unsupported pronunciation or service failure keep available
 database/spelling evidence and returns `nameSearch.warnings`; it does not stop
 the background indexer or replace exact-match behavior. A failed external
 provider still produces `LOOKUP_FAILED` with any suggestions attached for review.

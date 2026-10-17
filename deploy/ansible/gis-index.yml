@@ -13,8 +13,8 @@
     gev_gis_schema: public
     gev_gis_pilot: true
     gev_embeddings_pilot: true
-    gev_embeddings_interval_ms: 2000
-    gev_embeddings_hourly_limit: 600
+    gev_embeddings_interval_ms: 0
+    gev_embeddings_hourly_limit: 0
     gev_embeddings_batch_size: 32
   tasks:
     - name: Require explicit release and inspected baseline
@@ -24,8 +24,9 @@
           - gev_expected is defined and gev_expected is match('^[a-f0-9]{40}$')
           - gev_gis_interval_ms | int >= 10000
           - gev_gis_hourly_limit | int <= 240
-          - gev_embeddings_interval_ms | int >= 1000
-          - gev_embeddings_hourly_limit | int >= 1
+          - gev_embeddings_interval_ms | int >= 0
+          - gev_embeddings_interval_ms | int <= 300000
+          - gev_embeddings_hourly_limit | int >= 0
           - gev_embeddings_hourly_limit | int <= 1800
           - gev_embeddings_batch_size | int >= 1
           - gev_embeddings_batch_size | int <= 32

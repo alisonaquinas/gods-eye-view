@@ -249,8 +249,8 @@ export function embeddingConfig(env = process.env) {
     endpoint: EMBEDDING_URL,
     semanticModel: SEMANTIC_MODEL,
     phoneticModel: PHONETIC_MODEL,
-    intervalMs: integer('GEV_GIS_EMBEDDING_INTERVAL_MS', 2000, 1000, 300000),
-    hourlyLimit: integer('GEV_GIS_EMBEDDING_REQUESTS_PER_HOUR', 600, 1, 1800),
+    intervalMs: integer('GEV_GIS_EMBEDDING_INTERVAL_MS', 0, 0, 300000),
+    hourlyLimit: integer('GEV_GIS_EMBEDDING_REQUESTS_PER_HOUR', 0, 0, 1800),
     batchSize: integer('GEV_GIS_EMBEDDING_BATCH_SIZE', 32, 1, 32),
     featureBatchSize: integer('GEV_GIS_EMBEDDING_FEATURE_BATCH', 1000, 1, 2000),
   };

@@ -242,7 +242,9 @@ export class GisIndexStore {
       }
       const due = Math.max(
         Number(row.next_request_at),
-        count >= config.hourlyLimit ? start + 3_600_000 : 0,
+        config.hourlyLimit > 0 && count >= config.hourlyLimit
+          ? start + 3_600_000
+          : 0,
       );
       if (due > now) return due - now;
       await client.query(

@@ -9,8 +9,8 @@ import {
 } from './embeddings/names.js';
 import { validateEmbeddings } from './embeddings/transport.js';
 
-// Interactive requests have a small independent budget. Both consumers advance
-// the same next_request_at, so a resolver cannot burst alongside the backfill.
+// No hourly quota for the private embedding service. Honor provider cooldowns
+// and any explicitly configured spacing shared with the background worker.
 export async function reserveSearchRequest(store) {
   return store.transaction(async (client) => {
     const shared = (
@@ -27,15 +27,11 @@ export async function reserveSearchRequest(store) {
     const reset = now >= Number(row.window_start) + 3_600_000;
     const start = reset ? now : Number(row.window_start);
     const count = reset ? 0 : row.window_requests;
-    const due = Math.max(
-      Number(shared.next_request_at),
-      Number(row.retry_at),
-      count >= 60 ? start + 3_600_000 : 0,
-    );
+    const due = Math.max(Number(shared.next_request_at), Number(row.retry_at));
     if (due > now) return due - now;
     await client.query(
       'UPDATE gev_gis_embedding_control SET next_request_at=$1 WHERE id=1',
-      [now + Math.max(2000, Number(shared.config.intervalMs) || 2000)],
+      [now + Math.max(0, Number(shared.config.intervalMs) || 0)],
     );
     await client.query(
       `UPDATE gev_gis_resolver_control SET window_start=$1,window_requests=$2,requests=requests+1 WHERE id=1`,
@@ -54,13 +50,13 @@ export function createSearchEmbeddings(
 ) {
   async function request(kind, inputs, warnings) {
     if (!inputs.length) return [];
-    // Never wait out an hourly budget or compete in an unbounded request queue.
+    // Keep interactive latency bounded during cooldowns or optional pacing.
     for (let attempt = 0; ; attempt++) {
       const delay = await reserveSearchRequest(store);
       if (!delay) break;
       if (delay > 2500 || attempt >= 2) {
         warnings.add(
-          'Embedding request budget or pacing is busy; using available database vectors.',
+          'Embedding service is cooling down or waiting; using available database vectors.',
         );
         return [];
       }

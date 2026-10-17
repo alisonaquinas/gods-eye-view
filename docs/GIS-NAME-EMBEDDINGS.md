@@ -89,15 +89,18 @@ Defaults in `deploy/ansible/gis-index.yml` and `embeddingConfig()`:
 
 | Environment variable                  | Default | Allowed range |
 | ------------------------------------- | ------: | ------------: |
-| `GEV_GIS_EMBEDDING_INTERVAL_MS`       |    2000 |   1000–300000 |
-| `GEV_GIS_EMBEDDING_REQUESTS_PER_HOUR` |     600 |        1–1800 |
+| `GEV_GIS_EMBEDDING_INTERVAL_MS`       |       0 |      0–300000 |
+| `GEV_GIS_EMBEDDING_REQUESTS_PER_HOUR` |       0 |        0–1800 |
 | `GEV_GIS_EMBEDDING_BATCH_SIZE`        |      32 |          1–32 |
 | `GEV_GIS_EMBEDDING_FEATURE_BATCH`     |    1000 |        1–2000 |
 
 Shared road types, directions and locality components are prioritized so complete
 name pairs become available early during a large backfill.
-Only one embedding request runs at a time. All endpoints share the persisted
-minimum spacing and hourly budget. `Retry-After` and exponential cooldown survive
+Only one background embedding request runs at a time. By default, there is no
+fixed delay or hourly request cap: zero disables each limit. Positive settings
+enable optional persisted spacing and a background hourly budget. The service
+queues overlapping inference requests instead of rejecting busy models with 429.
+`Retry-After` and exponential cooldown for actual service failures survive
 restarts. HTTP 400/422 batches are split to isolate rejected inputs; only those
 inputs are marked blocked. They are not retried endlessly. Status excludes those
 from the runnable pending count and reports them as needing operator review.

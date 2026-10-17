@@ -4,12 +4,12 @@ GEV stores named facilities separately from street/address GIS records in
 `gev_places`, with stable IDs, a collection, category, parent, aliases, explicit
 localities, optional coordinates, source evidence, and source-review dates.
 `gev_place_names` links canonical names and aliases to the same meaning and
-pronunciation embedding queue used by the GIS index. Existing embedding budgets
-apply; importing the catalog makes no network requests.
+pronunciation embedding queue used by the GIS index. Embedding requests run
+without a rate limit by default; importing the catalog makes no network requests.
 Airport codes ATL/KATL/RCC use explicit broad American English letter-name IPA,
 and ParkATL uses “park” followed by A–T–L. This repairs dictionary/G2P rejections
 without changing the original names or meaning embeddings. The pronunciation
-source is recorded; vectors still come from the metered embedding service.
+source is recorded; vectors still come from the embedding service.
 
 ## Airport starter catalog
 
@@ -141,8 +141,8 @@ npm run places:collect -- resume
 `places.collection` in the index status reports heartbeat, pending source records,
 and processed records. `embeddings` on each place lists linked name IDs and
 meaning/pronunciation completion counts. Queue links are created during import,
-independent of the embedding worker's request budget. The embedding status panel
-shows the actual next-window time when its hourly budget is exhausted.
+independent of the embedding worker. If an optional hourly cap is configured,
+the embedding status panel shows its actual next-window time when exhausted.
 Malformed source records are retained for review and counted as `rejected`;
 they do not block other places. Their next GIS refresh retries them automatically.
 The original address record and `place_registry_error` retain the review context.

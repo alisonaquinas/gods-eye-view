@@ -459,18 +459,26 @@ test(
 );
 
 test(
-  'interactive embedding budget is durable, shares pacing and honors provider cooldown',
+  'interactive embeddings have no hourly cap or default spacing, but honor optional spacing and provider cooldown',
   { skip: !connection },
   async () => {
     const f = await fixture();
     try {
       assert.equal(await reserveSearchRequest(f.store), 0);
-      assert.equal(await reserveSearchRequest(f.store), 2000);
-      f.advance(2001);
+      assert.equal(await reserveSearchRequest(f.store), 0);
       await f.store.pool.query(
         'UPDATE gev_gis_resolver_control SET window_requests=60',
       );
-      assert.ok((await reserveSearchRequest(f.store)) > 3_000_000);
+      assert.equal(await reserveSearchRequest(f.store), 0);
+      await f.store.pool.query(
+        `UPDATE gev_gis_embedding_control SET config='{"intervalMs":2000}'`,
+      );
+      assert.equal(await reserveSearchRequest(f.store), 0);
+      assert.equal(await reserveSearchRequest(f.store), 2000);
+      await f.store.pool.query(
+        'UPDATE gev_gis_resolver_control SET retry_at=$1',
+        [f.store.now() + 120000],
+      );
       const warnings = new Set();
       await createSearchEmbeddings(f.store, f.options)(
         [prepareName('STREET', 'Uncached Street SW')],

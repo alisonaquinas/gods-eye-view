@@ -346,14 +346,24 @@ export function createGisIndexControls(
               'gis-index-error',
             ),
           );
-        if (embeddings.settings?.intervalMs)
+        if (embeddings.settings) {
+          const limits = [];
+          if (embeddings.settings.intervalMs > 0)
+            limits.push(
+              `≥${number(embeddings.settings.intervalMs / 1000)}s apart`,
+            );
+          if (embeddings.settings.hourlyLimit > 0)
+            limits.push(
+              `up to ${number(embeddings.settings.hourlyLimit)}/hour`,
+            );
           details.append(
             element(
               'p',
-              `Up to ${number(embeddings.settings.batchSize)} names per request · ≥${number(embeddings.settings.intervalMs / 1000)}s apart · up to ${number(embeddings.settings.hourlyLimit)}/hour`,
+              `Up to ${number(embeddings.settings.batchSize)} names per request · ${limits.length ? limits.join(' · ') : 'No request rate limit'}`,
               'gis-index-note',
             ),
           );
+        }
         details.append(
           element(
             'p',

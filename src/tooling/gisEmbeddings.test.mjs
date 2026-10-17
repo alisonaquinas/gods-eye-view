@@ -81,9 +81,12 @@ test('names expand street abbreviations and numeric pronunciation without embedd
     'LandmkName',
   );
   assert.throws(() => embeddingConfig({ GEV_GIS_EMBEDDING_BATCH_SIZE: '33' }));
+  assert.throws(() => embeddingConfig({ GEV_GIS_EMBEDDING_INTERVAL_MS: '-1' }));
   assert.throws(() =>
-    embeddingConfig({ GEV_GIS_EMBEDDING_INTERVAL_MS: '100' }),
+    embeddingConfig({ GEV_GIS_EMBEDDING_REQUESTS_PER_HOUR: '-1' }),
   );
+  assert.equal(embeddingConfig({}).intervalMs, 0);
+  assert.equal(embeddingConfig({}).hourlyLimit, 0);
 });
 test('model responses validate dimensions, finite unit vectors, ordered unique indexes and pronunciation provenance', () => {
   const subnormal = unit(384);
@@ -150,6 +153,46 @@ test('model responses validate dimensions, finite unit vectors, ordered unique i
 });
 
 const connection = process.env.GEV_GIS_TEST_DATABASE_URL;
+test(
+  'unlimited embedding requests bypass old hourly counts while explicit limits and failure cooldowns persist',
+  { skip: !connection },
+  async () => {
+    const f = await fixture();
+    try {
+      await f.store.setup();
+      const config = embeddingConfig({});
+      await f.store.acquireWorker(randomUUID(), config);
+      await f.store.pool.query(
+        'UPDATE gev_gis_embedding_control SET window_start=$1,window_requests=600',
+        [f.now()],
+      );
+      assert.equal(await f.store.requestSlot(config), 0);
+      assert.equal(await f.store.requestSlot(config), 0);
+      assert.equal((await f.store.status()).budgetWaiting, false);
+      assert.equal((await f.store.status()).windowRequests, 602);
+      assert.equal(
+        await f.store.requestSlot({ ...config, hourlyLimit: 600 }),
+        3_600_000,
+      );
+      await f.store.cooldown(
+        Object.assign(new Error('Provider unavailable'), {
+          retryAfterMs: 120000,
+        }),
+      );
+      await f.restart();
+      await f.store.setup();
+      assert.equal(await f.store.requestSlot(config), 120000);
+      await f.sleep(120000);
+      assert.equal(
+        await f.store.requestSlot({ ...config, intervalMs: 2000 }),
+        0,
+      );
+      assert.equal(await f.store.requestSlot(config), 2000);
+    } finally {
+      await f.close();
+    }
+  },
+);
 async function fixture() {
   if (!new URL(connection).pathname.endsWith('_test'))
     throw new Error('Use an isolated *_test database.');
@@ -293,11 +336,7 @@ test(
         8,
       );
       assert.ok(f.requests.every((r) => r.body.input.length <= 32));
-      assert.ok(
-        f.requests.every(
-          (r, i) => !i || r.time - f.requests[i - 1].time >= 2000,
-        ),
-      );
+      assert.ok(f.requests.every((r) => r.time === f.requests[0].time));
       assert.equal(f.requests[2].body.input_type, 'ipa');
       const count = f.requests.length;
       await f.restart();
