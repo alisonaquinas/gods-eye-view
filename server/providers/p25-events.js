@@ -112,7 +112,16 @@ export function p25EventsProxy({ fetchImpl = globalThis.fetch } = {}) {
           error: 'SDR could not query the event log. Try Refresh.',
         });
       }
-      send(res, 200, result.data.eventLogEntries);
+      const page = result.data.eventLogEntries;
+      send(res, 200, {
+        ...page,
+        // SDR cursors follow IDs, which need not track report timestamps.
+        // Keep its cursor untouched while presenting each page newest first.
+        entries: [...page.entries].sort(
+          (a, b) =>
+            (Date.parse(b.timestamp) || 0) - (Date.parse(a.timestamp) || 0),
+        ),
+      });
     } catch {
       send(res, 502, { error: 'Cannot reach the SDR event API. Try Refresh.' });
     } finally {

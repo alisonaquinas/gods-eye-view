@@ -13,6 +13,12 @@ Every page uses the same timestamp bounds. It does not maintain a copied event
 database. Up to 10,000 events are loaded per window; incomplete results are
 explicitly marked and can be resolved by choosing a shorter window.
 
+Events are shown newest first by their report timestamp, never by event number.
+The adapter sorts each page without changing SDR's pagination cursor; the client
+sorts the combined snapshot across pages, and the list enforces that order on
+every refresh, including timestamp corrections. Identical timestamps retain their
+relative order. Selection and report permalinks stay attached to the event ID.
+
 Events with valid saved GraphQL `location` values receive markers. A confirmed
 APD match can also supply its published coordinates while Atlanta Police is
 enabled. The location source is shown in the report. GEV does

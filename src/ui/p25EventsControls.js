@@ -127,6 +127,11 @@ export function createP25EventsControls(container, apply) {
       root.hidden = !value;
       if (!value) return;
       current = value;
+      // Enforce display order on every refresh, independently of provider,
+      // pagination, or event-number order. Do not mutate the layer's snapshot.
+      const entries = [...value.entries].sort(
+        (a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp),
+      );
       const nextSignature = JSON.stringify(value.params);
       if (signature !== nextSignature) {
         signature = nextSignature;
@@ -172,9 +177,9 @@ export function createP25EventsControls(container, apply) {
         .join('\n');
       showError();
       root.querySelector('summary').textContent =
-        `Events (${value.entries.length})`;
+        `Events (${entries.length}) · newest first`;
       const nextList = JSON.stringify(
-        value.entries.map((event) => [
+        entries.map((event) => [
           event.id,
           event.title,
           event.timestamp,
@@ -188,7 +193,7 @@ export function createP25EventsControls(container, apply) {
       if (listSignature !== nextList) {
         listSignature = nextList;
         list.replaceChildren();
-        for (const event of value.entries) {
+        for (const event of entries) {
           const row = doc.createElement('div');
           row.className = 'p25-event';
           const button = doc.createElement('button');

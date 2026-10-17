@@ -72,3 +72,25 @@ test('HTTP-200 GraphQL errors are reported as failures without leaking upstream 
   assert.equal(result.code, 502);
   assert.doesNotMatch(result.payload.error, /SQL/);
 });
+
+test('event pages use report time rather than ID order and preserve the upstream pagination cursor', async () => {
+  const entries = [
+    { id: '300', timestamp: '2026-10-15T12:00:00Z' },
+    { id: '200', timestamp: '2026-10-15T16:00:00Z' },
+    { id: '100', timestamp: '2026-10-15T14:00:00Z' },
+  ];
+  const request = setup(async (_url, init) => {
+    assert.equal(JSON.parse(init.body).variables.before, '400');
+    return Response.json({
+      data: { eventLogEntries: { entries, total: 5, next: '100' } },
+    });
+  });
+  const result = await request(`${path}&before=400`);
+  assert.equal(result.code, 200);
+  assert.deepEqual(
+    result.payload.entries.map(({ id }) => id),
+    ['200', '100', '300'],
+  );
+  assert.equal(result.payload.next, '100');
+  assert.equal(result.payload.total, 5);
+});
