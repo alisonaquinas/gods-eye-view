@@ -138,14 +138,16 @@ export function createP25EventsControls(container, apply) {
         if (value.params.from) from.value = localInput(value.params.from);
         if (value.params.until) until.value = localInput(value.params.until);
       }
-      const mapped = value.entries.filter((event) => event.location).length;
+      const mapped = value.entries.filter(
+        (event) => event.mapLocation ?? event.location,
+      ).length;
       const missing = value.entries.length - mapped;
       root.querySelector('[data-action="refresh"]').disabled = value.loading;
       root.querySelector('[data-action="fit"]').disabled = !mapped;
       root.querySelector('.p25-status').textContent = value.loading
         ? 'Querying SDR event log…'
         : value.lastUpdate
-          ? `${mapped} mapped · ${missing} without geotags`
+          ? `${value.mapPointCount ?? mapped} map points · ${missing} without locations`
           : 'No event data loaded.';
       root.querySelector('.p25-coverage').textContent = [
         value.partial
@@ -163,6 +165,7 @@ export function createP25EventsControls(container, apply) {
         value.entries.length && !mapped
           ? 'No geotagged events in this window.'
           : '',
+        'Radio reports only. Confirmed APD matches share one map point.',
         mapped ? 'Amber points: approximate street or area locations.' : '',
       ]
         .filter(Boolean)
@@ -175,7 +178,8 @@ export function createP25EventsControls(container, apply) {
           event.id,
           event.title,
           event.timestamp,
-          Boolean(event.location),
+          Boolean(event.mapLocation ?? event.location),
+          event.mapSummary,
           event.organizations,
           event.apdLinks,
         ]),
@@ -188,7 +192,7 @@ export function createP25EventsControls(container, apply) {
           const button = doc.createElement('button');
           button.type = 'button';
           button.dataset.eventId = event.id;
-          button.textContent = `${dateLabel(event.timestamp)} · ${event.location ? 'Mapped' : 'No geotag'}\n${event.title}`;
+          button.textContent = `${dateLabel(event.timestamp)} · ${(event.mapLocation ?? event.location) ? 'Mapped' : 'No geotag'}\n${event.title}`;
           const organizations = doc.createElement('span');
           organizations.className = 'p25-organizations';
           renderOrganizations(organizations, event.organizations);
@@ -227,12 +231,13 @@ export function createP25EventsControls(container, apply) {
         );
         detail.querySelector('.p25-event-time').textContent =
           `${dateLabel(selected.timestamp)} · ${selected.linkCount} linked sources · event ${selected.id}`;
-        detail.querySelector('.p25-location').textContent = selected.location
-          ? `${selected.location.label} · ${['AREA', 'STREET'].includes(selected.location.precision) ? 'Approximate ' : ''}${selected.location.precision.toLowerCase()}`
+        const location = selected.mapLocation ?? selected.location;
+        detail.querySelector('.p25-location').textContent = location
+          ? `${location.label} · ${['AREA', 'STREET'].includes(location.precision) ? 'Approximate ' : ''}${location.precision.toLowerCase()} · ${selected.mapSummary || ''}`
           : 'No geotag — not shown on the map.';
         detail.querySelector('.p25-report').textContent = selected.rawText;
-        detail.querySelector('.p25-provenance').textContent = selected.location
-          ? `Location source: ${selected.location.source}`
+        detail.querySelector('.p25-provenance').textContent = location
+          ? `Location source: ${location.source}`
           : '';
       }
     },

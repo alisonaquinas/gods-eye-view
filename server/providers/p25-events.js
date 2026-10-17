@@ -5,7 +5,7 @@ import { clientKey, makeRateLimiter } from './common/rate-limit.js';
 const QUERY = `query GevP25Events($filter: EventLogFilter, $before: ID) {
   eventLogEntries(filter: $filter, first: 250, before: $before) {
     total next entries {
-      id timestamp rawText linkCount
+      id origin timestamp rawText linkCount
       organizations { id name aliases }
       apdLinks { status reason stale incident { id incidentNumber available officialUrl review { status } offenses { objectId offense } } }
       location { latitude longitude label precision source }
@@ -81,6 +81,7 @@ export function p25EventsProxy({ fetchImpl = globalThis.fetch } = {}) {
             query: QUERY,
             variables: {
               filter: {
+                origin: 'RADIO',
                 from: new Date(from).toISOString(),
                 until: new Date(until).toISOString(),
               },

@@ -23,6 +23,7 @@ import { createApplicationLaunches } from './layers/rocketLaunches.js';
 import { createApplicationAlpr } from './layers/alprCameras.js';
 import { createApplicationEffAtlasLayers } from './layers/effAtlas.js';
 import { createApplicationDeflock } from './layers/deflock.js';
+import { createIncidentMap } from '../data/incidentMap.js';
 import { createApplicationP25Events } from './layers/p25Events.js';
 import { createApplicationAtlantaCrime } from './layers/atlantaCrime.js';
 import { createApplicationLocalAdsb } from './layers/localAdsb.js';
@@ -109,6 +110,7 @@ export function createApplicationCatalog({
     const satellites = createApplicationSatellites({
       source: sources.satellites,
     });
+    const incidentMap = createIncidentMap();
     const catalog = createLayerCatalog(
       [
         createBhoteKoshiEventLayer(),
@@ -124,8 +126,11 @@ export function createApplicationCatalog({
           ...(resolveAsset ? { resolveAsset } : {}),
         }),
         createApplicationEarthquakes({ source: sources.earthquakes }),
-        createApplicationP25Events({ source: sources.p25 }),
-        createApplicationAtlantaCrime({ source: sources.atlantaCrime }),
+        createApplicationP25Events({ source: sources.p25, incidentMap }),
+        createApplicationAtlantaCrime({
+          source: sources.atlantaCrime,
+          incidentMap,
+        }),
         createApplicationAirQuality({ source: sources['air-quality'] }),
         createApplicationFirePerimeters({
           source: sources['fire-perimeters'],

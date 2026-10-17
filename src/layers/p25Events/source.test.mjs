@@ -9,6 +9,7 @@ const window = {
 };
 const row = (id, extra = {}) => ({
   id,
+  origin: 'RADIO',
   timestamp: window.from,
   rawText: 'Report\n\nDetails',
   location: null,
@@ -136,4 +137,23 @@ test('aborts propagate and server failures remain visible', async () => {
     { name: 'AbortError' },
   );
   await assert.rejects(source.getSnapshot(window), /SDR unavailable/);
+});
+
+test('APD imports and unknown origins never become P25 reports, regardless of title or link count', async () => {
+  const result = await createP25EventSource({
+    fetchImpl: async () =>
+      page([
+        row('1', {
+          origin: 'APD',
+          rawText: 'Radio corroboration claimed in text',
+          linkCount: 4,
+        }),
+        row('2', { origin: undefined }),
+        row('3', { rawText: 'APD incident discussed on radio' }),
+      ]),
+  }).getSnapshot(window);
+  assert.deepEqual(
+    result.entries.map(({ id }) => id),
+    ['3'],
+  );
 });

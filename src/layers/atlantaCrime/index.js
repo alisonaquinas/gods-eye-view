@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import { createIncidentMap } from '../../data/incidentMap.js';
 import { isPointerFree } from '../../data/inputOwnership.js';
 import {
   DEFAULT_ATLANTA_CRIME_PARAMS,
@@ -19,6 +20,7 @@ const empty = () => ({
 
 export function createAtlantaCrimeLayer({
   source,
+  incidentMap = createIncidentMap(),
   overlayHost,
   picking,
   requestRender,
@@ -39,7 +41,10 @@ export function createAtlantaCrimeLayer({
     listener?.();
     requestRender?.(ID);
   };
-  const mapped = () => snapshot.entries.filter((entry) => entry.location);
+  let unsubscribe;
+  const mapped = () => incidentMap.entries(ID);
+  const publish = () =>
+    incidentMap.publish(ID, { enabled, entries: snapshot.entries });
   const displayTime = (entry) =>
     entry.dateOnly
       ? new Date(entry.timestamp).toISOString().slice(0, 10)
@@ -49,7 +54,12 @@ export function createAtlantaCrimeLayer({
         });
 
   function select(id, fly = false) {
-    const entry = snapshot.entries.find((row) => row.id === id);
+    const original = snapshot.entries.find((row) => row.id === id);
+    const target = incidentMap.resolve(ID, id);
+    const entry = original && {
+      ...original,
+      location: target?.entry.location || original.location,
+    };
     selectedId = entry?.id || null;
     overlayHost.clearSource(ID);
     if (entry?.location && enabled) {
@@ -71,7 +81,7 @@ export function createAtlantaCrimeLayer({
               displayTime(entry),
               entry.address.slice(0, 65),
               `Incident ${entry.incident || 'unavailable'}`,
-              'Details in Atlanta Police',
+              target?.entry.mapSummary || 'Details in Atlanta Police',
             ],
             accent: ATLANTA_CRIME_COLORS[entry.category],
           },
@@ -150,9 +160,11 @@ export function createAtlantaCrimeLayer({
       viewer.dataSources.add(points);
       viewer.dataSources.add(outlines);
       overlayHost.setVisible(ID, false);
+      unsubscribe = incidentMap.subscribe(ID, renderPoints);
     },
     enable() {
       enabled = true;
+      publish();
       points.show = outlines.show = true;
       overlayHost.setVisible(ID, true);
       picking.registerPickOwner(ID, (id) => id.startsWith(PREFIX));
@@ -166,7 +178,7 @@ export function createAtlantaCrimeLayer({
           return;
         const id = picking.resolvePickId(viewer.scene.pick(click.position));
         if (id?.startsWith(PREFIX)) {
-          const entry = snapshot.entries.find(
+          const entry = mapped().find(
             (row) => row.id === id.slice(PREFIX.length),
           );
           const same = mapped().filter(
@@ -186,6 +198,7 @@ export function createAtlantaCrimeLayer({
     },
     disable() {
       enabled = false;
+      publish();
       request?.abort();
       request = null;
       loading = false;
@@ -239,7 +252,7 @@ export function createAtlantaCrimeLayer({
           };
         }
         lastUpdate = now();
-        renderPoints();
+        publish();
         return true;
       } catch (cause) {
         if (!controller.signal.aborted && request === controller && enabled)
@@ -276,7 +289,7 @@ export function createAtlantaCrimeLayer({
         snapshot = empty();
         lastUpdate = null;
         error = null;
-        renderPoints();
+        publish();
       }
       renderBoundaries();
       if (enabled) void layer.update();
@@ -286,6 +299,17 @@ export function createAtlantaCrimeLayer({
     getRowControls: () => ({
       atlantaCrime: {
         ...snapshot,
+        entries: snapshot.entries.map((entry) => ({
+          ...entry,
+          mapLocation:
+            incidentMap.resolve(ID, entry.id)?.entry.location || null,
+          mapSummary: incidentMap.resolve(ID, entry.id)?.entry.mapSummary || '',
+        })),
+        mapPointCount: new Set(
+          snapshot.entries
+            .map((entry) => incidentMap.resolve(ID, entry.id))
+            .filter((target) => target?.entry.location),
+        ).size,
         params: { ...params },
         selectedId,
         loading,
@@ -310,11 +334,13 @@ export function createAtlantaCrimeLayer({
       error,
       stale: Boolean(error && lastUpdate),
       partial: snapshot.partial,
-      statusMessage: `${mapped().length} mapped offenses${snapshot.partial ? ' · partial coverage' : ''}`,
+      statusMessage: `${mapped().length} map points${snapshot.partial ? ' · partial coverage' : ''}`,
     }),
     destroy() {
       if (enabled) layer.disable();
       request?.abort();
+      unsubscribe?.();
+      unsubscribe = null;
       listener = null;
       overlayHost.clearSource(ID);
       if (points) viewer.dataSources.remove(points, true);
