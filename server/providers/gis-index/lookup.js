@@ -117,8 +117,19 @@ export async function lookupIndex(pool, query, now) {
       },
     };
   });
+  // Nearby source coordinates can corroborate one junction across datasets.
+  // Two distinct junctions in the same dataset must never be merged merely
+  // because they are less than 100 metres apart (e.g. a looping street).
+  const sourceJunctions = new Map();
+  if (query.kind === 'INTERSECTION')
+    for (const row of rows) {
+      if (!sourceJunctions.has(row.source_id))
+        sourceJunctions.set(row.source_id, new Set());
+      sourceJunctions.get(row.source_id).add(`${row.vertex_key}:${row.level}`);
+    }
   const ambiguous =
     rows.length > 25 ||
+    [...sourceJunctions.values()].some((junctions) => junctions.size > 1) ||
     candidates.some(
       (candidate) =>
         candidate.stale ||

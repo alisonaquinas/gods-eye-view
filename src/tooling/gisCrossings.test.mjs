@@ -266,6 +266,24 @@ test(
         assert.equal(result.status, 'AMBIGUOUS');
         assert.equal(result.candidates.length, 2);
       }
+      await f.publish([
+        first(),
+        second(),
+        road(3, 'First', [
+          [-84.43, 33.7202],
+          [-84.42, 33.7202],
+        ]),
+        road(4, 'Second', [
+          [-84.42, 33.7202],
+          [-84.42, 33.7203],
+        ]),
+      ]);
+      await f.drain();
+      assert.equal(
+        (await f.store.lookup(query)).status,
+        'AMBIGUOUS',
+        'Separate crossings only 22 metres apart are still distinct.',
+      );
       await f.publish([first(), second()]);
       await f.drain();
       assert.equal((await f.store.lookup(query)).status, 'RESOLVED');
