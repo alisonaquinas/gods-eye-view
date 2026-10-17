@@ -34,6 +34,8 @@ test('proxy only sends a fixed read query with validated bounds and no browser c
     const body = JSON.parse(init.body);
     assert.match(body.query, /^query GevP25Events/);
     assert.match(body.query, /organizations\s*\{\s*id name aliases\s*\}/);
+    assert.equal(body.variables.filter.origin, 'RADIO');
+    assert.match(body.query, /id origin timestamp/);
     assert.equal(body.variables.filter.from, '2026-10-15T12:00:00.000Z');
     assert.equal(init.headers['X-Vector-Control'], '1');
     assert.equal(init.redirect, 'error');

@@ -1,0 +1,154 @@
+---
+- name: Deploy tested P25 and APD display rules to GEV
+  hosts: gev
+  gather_facts: false
+  vars:
+    gev_source: /opt/gods-eye-view
+    gev_expected: 61ecf5e0faad6a1e1eb12e67d5ab83b999fd42e3
+    gev_account: gods-eye-view
+  tasks:
+    - name: Require an exact tested release commit
+      ansible.builtin.assert:
+        that:
+          - gev_release is defined
+          - gev_release is match('^[0-9a-f]{40}$')
+    - name: Read the running source revision
+      ansible.builtin.command: git rev-parse HEAD
+      args:
+        chdir: '{{ gev_source }}'
+      become: true
+      become_user: '{{ gev_account }}'
+      vars:
+        ansible_become: true
+      register: gev_previous
+      changed_when: false
+    - name: Check for tracked deployment changes
+      ansible.builtin.command: git status --porcelain --untracked-files=no
+      args:
+        chdir: '{{ gev_source }}'
+      become: true
+      become_user: '{{ gev_account }}'
+      vars:
+        ansible_become: true
+      register: gev_dirty
+      changed_when: false
+    - name: Require the inspected source revision and clean tracked files
+      ansible.builtin.assert:
+        that:
+          - gev_previous.stdout in [gev_expected, gev_release]
+          - gev_dirty.stdout == ''
+    - name: Fetch the tested release before interrupting the service
+      ansible.builtin.command:
+        argv: [git, fetch, origin, refs/heads/codex/p25-apd-display]
+        chdir: '{{ gev_source }}'
+      become: true
+      become_user: '{{ gev_account }}'
+      vars:
+        ansible_become: true
+      environment:
+        GIT_SSH_COMMAND: ssh -i /var/lib/gods-eye-view/.ssh/id_ed25519_github -o IdentitiesOnly=yes -o BatchMode=yes
+      changed_when: false
+    - name: Verify that the exact release is available
+      ansible.builtin.command:
+        argv: [git, cat-file, -t, '{{ gev_release }}']
+        chdir: '{{ gev_source }}'
+      become: true
+      become_user: '{{ gev_account }}'
+      vars:
+        ansible_become: true
+      register: gev_object
+      changed_when: false
+      failed_when: gev_object.stdout != 'commit'
+    - name: Capture a fixed live verification window
+      ansible.builtin.command:
+        argv:
+          - /opt/node-v24.14.0-linux-x64/bin/node
+          - -e
+          - 'console.log(new URLSearchParams({from:new Date(Date.now()-21600000).toISOString(),until:new Date().toISOString()}).toString())'
+      register: gev_query
+      changed_when: false
+    - name: Switch source and verify the live P25 adapter
+      block:
+        - name: Stop GEV for a consistent checkout
+          ansible.builtin.systemd_service:
+            name: gods-eye-view
+            state: stopped
+        - name: Activate the exact tested commit
+          ansible.builtin.command:
+            argv: [git, checkout, --detach, '{{ gev_release }}']
+            chdir: '{{ gev_source }}'
+          become: true
+          become_user: '{{ gev_account }}'
+          vars:
+            ansible_become: true
+          changed_when: gev_previous.stdout != gev_release
+        - name: Start GEV
+          ansible.builtin.systemd_service:
+            name: gods-eye-view
+            state: started
+        - name: Wait for the application listener
+          ansible.builtin.wait_for:
+            host: 127.0.0.1
+            port: 4173
+            timeout: 40
+        - name: Verify live GraphQL-backed event data through GEV
+          ansible.builtin.uri:
+            url: 'http://127.0.0.1:4173/api/p25-events?{{ gev_query.stdout }}'
+            return_content: true
+            timeout: 30
+          register: gev_p25
+          until: gev_p25.status == 200 and gev_p25.json.entries is defined and gev_p25.json.total is defined
+          retries: 3
+          delay: 2
+          no_log: true
+        - name: Verify the public HTTPS homepage
+          ansible.builtin.uri:
+            url: https://gev.alisonaquinas.pro/
+            status_code: 200
+          delegate_to: localhost
+          become: false
+        - name: Verify that P25 returns only radio-origin reports
+          ansible.builtin.assert:
+            that:
+              - gev_p25.json.entries | rejectattr('origin', 'equalto', 'RADIO') | list | length == 0
+        - name: Verify shared map point logic is served
+          ansible.builtin.uri:
+            url: http://127.0.0.1:4173/src/data/incidentMap.js
+            return_content: true
+            status_code: 200
+          register: gev_incident_map
+          failed_when: "'createIncidentMap' not in gev_incident_map.content or 'CONFIRMED' not in gev_incident_map.content"
+        - name: Persist the deployed revision in the controller inventory
+          ansible.builtin.lineinfile:
+            path: /root/home-cluster/inventory/production/host_vars/gev.yml
+            regexp: '^gods_eye_view_repository_version:'
+            line: 'gods_eye_view_repository_version: {{ gev_release }}'
+            backup: true
+          delegate_to: localhost
+          become: false
+        - name: Report verified event counts
+          ansible.builtin.debug:
+            msg:
+              revision: '{{ gev_release }}'
+              events_in_last_six_hours: '{{ gev_p25.json.total }}'
+              geotagged_on_first_page: '{{ gev_p25.json.entries | rejectattr("location", "equalto", None) | list | length }}'
+      rescue:
+        - name: Stop the failed release
+          ansible.builtin.systemd_service:
+            name: gods-eye-view
+            state: stopped
+        - name: Restore the previous commit
+          ansible.builtin.command:
+            argv: [git, checkout, --detach, '{{ gev_previous.stdout }}']
+            chdir: '{{ gev_source }}'
+          become: true
+          become_user: '{{ gev_account }}'
+          vars:
+            ansible_become: true
+        - name: Restart the previous release
+          ansible.builtin.systemd_service:
+            name: gods-eye-view
+            state: started
+        - name: Report rollback
+          ansible.builtin.fail:
+            msg: P25/APD display deployment verification failed; the previous source revision was restored and GEV restarted.

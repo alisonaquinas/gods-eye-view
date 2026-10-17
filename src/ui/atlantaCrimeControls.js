@@ -198,17 +198,21 @@ export function createAtlantaCrimeControls(container, apply) {
         form.elements.dateField.value = value.params.dateField;
         form.elements.boundaries.value = value.params.boundaries;
       }
-      const mapped = value.entries.filter((entry) => entry.location).length;
+      const mapped = value.entries.filter(
+        (entry) => entry.mapLocation ?? entry.location,
+      ).length;
       const missing = value.entries.length - mapped;
       root.querySelector('[data-action="refresh"]').disabled = value.loading;
       root.querySelector('.atlanta-crime-status').textContent = value.loading
         ? 'Loading APD reports…'
         : value.lastUpdate
-          ? `${mapped.toLocaleString()} mapped offenses${missing ? ` · ${missing} without coordinates` : ''}${value.error ? ' · previous results' : ''}${value.partial ? ' · partial results' : ''}`
+          ? `${(value.mapPointCount ?? mapped).toLocaleString()} map points · ${mapped.toLocaleString()} mapped offenses${missing ? ` · ${missing} without coordinates` : ''}${value.error ? ' · previous results' : ''}${value.partial ? ' · partial results' : ''}`
           : value.error
             ? 'APD reports unavailable.'
             : 'Waiting for APD reports…';
-      const coverage = [];
+      const coverage = [
+        'Offenses for the same incident share a point. Confirmed P25 matches use the same point in both layers.',
+      ];
       if (value.window)
         coverage.push(
           `${time(Date.parse(value.window.from))} – ${time(Date.parse(value.window.until))}`,

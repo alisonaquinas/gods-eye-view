@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import { createIncidentMap } from '../../data/incidentMap.js';
 import { isPointerFree } from '../../data/inputOwnership.js';
 import { DEFAULT_P25_WINDOW, p25Window } from './model.js';
 import { createP25SurfaceAnchors } from './surface.js';
@@ -10,6 +11,7 @@ const COLORS = { precise: '#5edbd5', approximate: '#f6b653' };
 /** Live SDR event locations, with acquisition canceled on window changes or disable. */
 export function createP25EventsLayer({
   source,
+  incidentMap = createIncidentMap(),
   overlayHost,
   picking,
   requestRender,
@@ -29,14 +31,24 @@ export function createP25EventsLayer({
     listener?.();
     requestRender?.('p25-events');
   };
-  const mapped = () => snapshot.entries.filter((event) => event.location);
+  let unsubscribe;
+  const mapped = () => incidentMap.entries(ID);
+  const publish = () =>
+    incidentMap.publish(ID, { enabled, entries: snapshot.entries });
   const approximate = (event) =>
     ['STREET', 'AREA'].includes(event.location?.precision);
 
   function select(id, fly = false) {
     selectedId = snapshot.entries.some((event) => event.id === id) ? id : null;
     overlayHost.clearSource(ID);
-    const event = snapshot.entries.find((event) => event.id === selectedId);
+    const original = snapshot.entries.find((event) => event.id === selectedId);
+    const target = incidentMap.resolve(ID, selectedId);
+    const event = original && {
+      ...original,
+      location: target?.entry.location || original.location,
+    };
+    // The report list keeps each narrative; its card uses the shared point.
+    const mapSummary = target?.entry.mapSummary;
     const position = event?.location && anchors?.position(event.location);
     if (position && enabled) {
       const location = event.location;
@@ -57,7 +69,7 @@ export function createP25EventsLayer({
               new Date(event.timestamp).toLocaleString(),
               location.label.slice(0, 65),
               `${approximate(event) ? 'Approximate · ' : ''}${location.precision.toLowerCase()} location`,
-              'Full report in P25 Events',
+              mapSummary || 'Full report in P25 Events',
             ],
             accent: approximate(event) ? COLORS.approximate : COLORS.precise,
           },
@@ -78,6 +90,7 @@ export function createP25EventsLayer({
   }
 
   function render() {
+    if (!dataSource) return;
     anchors.sync(mapped());
     dataSource.entities.suspendEvents();
     try {
@@ -143,7 +156,8 @@ export function createP25EventsLayer({
               if (!entity) continue;
               entity.show = Boolean(position);
               if (position) entity.position = position;
-              if (id === selectedId) selectedChanged = true;
+              if (id === incidentMap.resolve(ID, selectedId)?.entry.id)
+                selectedChanged = true;
             }
           }
           if (selectedChanged) select(selectedId);
@@ -151,9 +165,11 @@ export function createP25EventsLayer({
         },
       });
       overlayHost.setVisible(ID, false);
+      unsubscribe = incidentMap.subscribe(ID, render);
     },
     enable() {
       enabled = true;
+      publish();
       anchors.setEnabled(true);
       dataSource.show = true;
       overlayHost.setVisible(ID, true);
@@ -168,7 +184,7 @@ export function createP25EventsLayer({
           return;
         const id = picking.resolvePickId(viewer.scene.pick(click.position));
         if (id?.startsWith(PREFIX)) {
-          const event = snapshot.entries.find(
+          const event = mapped().find(
             (row) => row.id === id.slice(PREFIX.length),
           );
           const same = mapped().filter(
@@ -186,6 +202,7 @@ export function createP25EventsLayer({
     },
     disable() {
       enabled = false;
+      publish();
       anchors.setEnabled(false);
       request?.abort();
       request = null;
@@ -218,7 +235,7 @@ export function createP25EventsLayer({
           return false;
         snapshot = next;
         lastUpdate = now();
-        render();
+        publish();
         return true;
       } catch (cause) {
         if (!controller.signal.aborted && request === controller && enabled)
@@ -247,7 +264,7 @@ export function createP25EventsLayer({
         snapshot = { entries: [], total: 0, partial: false, window: null };
         lastUpdate = null;
         error = null;
-        if (dataSource) render();
+        publish();
         if (enabled) void layer.update();
       }
       changed();
@@ -258,6 +275,18 @@ export function createP25EventsLayer({
         p25: {
           params: { ...params },
           ...snapshot,
+          entries: snapshot.entries.map((entry) => ({
+            ...entry,
+            mapLocation:
+              incidentMap.resolve(ID, entry.id)?.entry.location || null,
+            mapSummary:
+              incidentMap.resolve(ID, entry.id)?.entry.mapSummary || '',
+          })),
+          mapPointCount: new Set(
+            snapshot.entries
+              .map((entry) => incidentMap.resolve(ID, entry.id))
+              .filter((target) => target?.entry.location),
+          ).size,
           selectedId,
           loading,
           error,
@@ -295,13 +324,15 @@ export function createP25EventsLayer({
         error,
         stale: Boolean(error && lastUpdate),
         partial: snapshot.partial,
-        statusMessage: `${mapped().length} mapped · ${snapshot.entries.length - mapped().length} without location`,
+        statusMessage: `${mapped().length} map points · ${snapshot.entries.filter((entry) => !incidentMap.resolve(ID, entry.id)?.entry.location).length} without location`,
       };
     },
     destroy() {
       if (enabled) layer.disable();
       request?.abort();
       anchors?.destroy();
+      unsubscribe?.();
+      unsubscribe = null;
       listener = null;
       overlayHost.clearSource(ID);
       if (dataSource) viewer.dataSources.remove(dataSource, true);

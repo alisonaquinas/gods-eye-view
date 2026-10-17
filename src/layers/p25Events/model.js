@@ -85,6 +85,7 @@ export function normalizeP25Event(row, bounds) {
   const time = Date.parse(row?.timestamp);
   if (
     !row ||
+    row.origin !== 'RADIO' ||
     !/^\d+$/.test(String(row.id)) ||
     !Number.isFinite(time) ||
     time < Date.parse(bounds.from) ||
@@ -94,6 +95,7 @@ export function normalizeP25Event(row, bounds) {
     return null;
   return {
     id: String(row.id),
+    origin: row.origin,
     timestamp: new Date(time).toISOString(),
     rawText: row.rawText,
     title:
