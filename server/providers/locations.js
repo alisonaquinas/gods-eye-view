@@ -2,11 +2,17 @@ import { clientKey, makeRateLimiter } from './common/rate-limit.js';
 import { parseLocationQuery } from './locations/matching.js';
 import { createAddressResolver } from './locations/resolver.js';
 import { createUspsProvider } from './locations/usps.js';
+import { parsePlaceListQuery } from './place-registry/query.js';
+import {
+  createGoogleLivePlaces,
+  parseGooglePlaceQuery,
+} from './place-registry/google-live.js';
 
 /** Read-only resolution: accepted matches are saved/linked through SDR GraphQL. */
 export function locationsProxy({
   index = null,
   postal = createUspsProvider({ index }),
+  googlePlaces = createGoogleLivePlaces({ index }),
   resolve = createAddressResolver({
     indexLookup: index ? (query) => index.lookup(query) : undefined,
     indexSuggest: index ? (query) => index.suggest(query) : undefined,
@@ -51,12 +57,60 @@ export function locationsProxy({
     }
   }
   const install = ({ middlewares }) => {
+    middlewares.use('/api/locations/places/google', async (req, res) => {
+      if (req.method !== 'GET') return send(res, 405, { error: 'Use GET.' });
+      if (!allow(clientKey(req)))
+        return send(res, 429, { error: 'Resolver busy; retry in one minute.' });
+      let q;
+      try {
+        q = parseGooglePlaceQuery(
+          new URL(req.url, 'http://localhost').searchParams,
+        );
+      } catch (error) {
+        return send(res, 400, { error: error.message });
+      }
+      const result = await googlePlaces.lookup(q);
+      send(
+        res,
+        result.status === 'BUDGET_WAIT'
+          ? 429
+          : ['LOOKUP_FAILED', 'UNAVAILABLE'].includes(result.status)
+            ? 503
+            : 200,
+        result,
+      );
+    });
+    middlewares.use('/api/locations/places', async (req, res) => {
+      if (req.method !== 'GET')
+        return send(res, 405, {
+          error: 'Use GET. Place imports are managed by the server operator.',
+        });
+      if (!allow(clientKey(req)))
+        return send(res, 429, { error: 'Resolver busy; retry in one minute.' });
+      let query;
+      try {
+        query = parsePlaceListQuery(
+          new URL(req.url, 'http://localhost').searchParams,
+        );
+      } catch (error) {
+        return send(res, 400, { error: error.message });
+      }
+      if (!index)
+        return send(res, 503, { error: 'Place registry is not configured.' });
+      try {
+        send(res, 200, await index.places(query));
+      } catch {
+        send(res, 503, { error: 'Place registry unavailable; retry later.' });
+      }
+    });
     middlewares.use('/api/locations/providers/status', async (req, res) => {
       if (req.method !== 'GET') return send(res, 405, { error: 'Use GET.' });
       if (!allow(clientKey(req)))
         return send(res, 429, { error: 'Resolver busy; retry in one minute.' });
       try {
-        send(res, 200, { providers: [await postal.status()] });
+        send(res, 200, {
+          providers: [await postal.status(), await googlePlaces.status()],
+        });
       } catch {
         send(res, 503, { error: 'Location provider status unavailable.' });
       }

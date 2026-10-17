@@ -28,9 +28,11 @@ export function createNameSearch(store, options = {}) {
         `SELECT n.id,n.kind,n.name_key,n.display_name,n.tokens,
       v.semantic IS NOT NULL AS has_semantic,v.phonetic IS NOT NULL AS has_phonetic
       FROM gev_gis_names n LEFT JOIN gev_gis_name_vectors v ON v.name_id=n.id AND v.profile=$1
-      WHERE n.kind=$2 AND n.recipe=$3 AND EXISTS (
+      WHERE n.kind=$2 AND n.recipe=$3 AND (EXISTS (
         SELECT 1 FROM gev_gis_feature_names fn JOIN gev_gis_features f USING(source_id,object_id)
         WHERE fn.name_id=n.id AND f.city_keys @> ARRAY[$4]::text[] AND f.region=$5)
+       OR EXISTS (SELECT 1 FROM gev_place_names pn JOIN gev_places p ON p.id=pn.place_id
+        WHERE pn.name_id=n.id AND p.active AND p.city_keys @> ARRAY[$4]::text[] AND p.region=$5))
       ORDER BY n.id LIMIT $6`,
         [
           EMBEDDING_PROFILE,

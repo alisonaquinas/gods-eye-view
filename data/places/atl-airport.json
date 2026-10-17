@@ -1,0 +1,1180 @@
+{
+  "collection": "atl-airport",
+  "description": "Curated ATL passenger facilities. Official airport names and addresses; OpenStreetMap representative coordinates where supported. No checkpoint pins inferred from parent terminals.",
+  "places": [
+    {
+      "id": "atl-airport",
+      "name": "Hartsfield-Jackson Atlanta International Airport",
+      "category": "AIRPORT",
+      "parentId": null,
+      "aliases": [
+        "ATL Airport",
+        "Atlanta Airport",
+        "Hartsfield Jackson Airport",
+        "Hartsfield Airport",
+        "KATL"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "AREA",
+      "location": {
+        "latitude": 33.6366667,
+        "longitude": -84.4280556
+      },
+      "locationNote": "Airport-wide reference coordinate converted from official 33\u00b038\u203212\u2033 N, 84\u00b025\u203241\u2033 W; not a terminal location.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/about-old/atl-factsheet/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-domestic-terminal",
+      "name": "ATL Domestic Terminal",
+      "category": "TERMINAL",
+      "parentId": "atl-airport",
+      "aliases": ["Domestic Terminal", "Atlanta Airport Domestic Terminal"],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": "6000 North Terminal Parkway, Atlanta, GA 30320",
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6407953,
+        "longitude": -84.4447004
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/maps/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/264678569",
+          "role": "coordinate",
+          "version": 5,
+          "sourceUpdatedAt": "2026-09-01T03:15:21Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Domestic Terminal"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z",
+      "streetAddress": "6000 North Terminal Parkway"
+    },
+    {
+      "id": "atl-international-terminal",
+      "name": "ATL Maynard H. Jackson Jr. International Terminal",
+      "category": "TERMINAL",
+      "parentId": "atl-airport",
+      "aliases": [
+        "International Terminal",
+        "ATL International Terminal",
+        "Atlanta Airport International Terminal",
+        "Maynard H. Jackson Junior International Terminal",
+        "Maynard Jackson International Terminal",
+        "Maynard H. Jackson Jr. International Terminal",
+        "Atlanta Airport Maynard H. Jackson Jr. International Terminal"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": "2600 Maynard H. Jackson Jr. Boulevard, Atlanta, GA 30354",
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6403179,
+        "longitude": -84.4183711
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/maps/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/328278997",
+          "role": "coordinate",
+          "version": 9,
+          "sourceUpdatedAt": "2024-07-26T13:06:48Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Maynard H. Jackson Junior International Terminal"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z",
+      "streetAddress": "2600 Maynard H. Jackson Jr. Boulevard"
+    },
+    {
+      "id": "atl-domestic-north",
+      "name": "ATL Domestic Terminal North",
+      "category": "TERMINAL_SECTION",
+      "parentId": "atl-domestic-terminal",
+      "aliases": [
+        "North Terminal",
+        "Terminal North",
+        "ATL North Terminal",
+        "Domestic North",
+        "Domestic Terminal North",
+        "Atlanta Airport Domestic Terminal North"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6413194,
+        "longitude": -84.4446391
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/maps/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/44488347",
+          "role": "coordinate",
+          "version": 12,
+          "sourceUpdatedAt": "2026-09-01T03:15:21Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "North Terminal"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-domestic-south",
+      "name": "ATL Domestic Terminal South",
+      "category": "TERMINAL_SECTION",
+      "parentId": "atl-domestic-terminal",
+      "aliases": [
+        "South Terminal",
+        "Terminal South",
+        "ATL South Terminal",
+        "Domestic South",
+        "Domestic Terminal South",
+        "Atlanta Airport Domestic Terminal South"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6402743,
+        "longitude": -84.4446401
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/maps/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/44488346",
+          "role": "coordinate",
+          "version": 10,
+          "sourceUpdatedAt": "2026-09-01T03:15:21Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "South Terminal"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-concourse-t",
+      "name": "ATL Concourse T",
+      "category": "CONCOURSE",
+      "parentId": "atl-domestic-terminal",
+      "aliases": [
+        "T Concourse",
+        "ATL Terminal T",
+        "Atlanta Airport Terminal T",
+        "Concourse T",
+        "Atlanta Airport Concourse T"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6408185,
+        "longitude": -84.4425112
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/maps/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/24445333",
+          "role": "coordinate",
+          "version": 21,
+          "sourceUpdatedAt": "2026-09-01T03:15:21Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Concourse T"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-concourse-a",
+      "name": "ATL Concourse A",
+      "category": "CONCOURSE",
+      "parentId": "atl-domestic-terminal",
+      "aliases": [
+        "A Concourse",
+        "ATL Terminal A",
+        "Atlanta Airport Terminal A",
+        "Concourse A",
+        "Atlanta Airport Concourse A"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6405201,
+        "longitude": -84.4391813
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/maps/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/24445165",
+          "role": "coordinate",
+          "version": 16,
+          "sourceUpdatedAt": "2024-05-14T05:59:40Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Concourse A"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-concourse-b",
+      "name": "ATL Concourse B",
+      "category": "CONCOURSE",
+      "parentId": "atl-domestic-terminal",
+      "aliases": [
+        "B Concourse",
+        "ATL Terminal B",
+        "Atlanta Airport Terminal B",
+        "Concourse B",
+        "Atlanta Airport Concourse B"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6406369,
+        "longitude": -84.4359101
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/maps/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/24445168",
+          "role": "coordinate",
+          "version": 16,
+          "sourceUpdatedAt": "2024-05-14T05:59:40Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Concourse B"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-concourse-c",
+      "name": "ATL Concourse C",
+      "category": "CONCOURSE",
+      "parentId": "atl-domestic-terminal",
+      "aliases": [
+        "C Concourse",
+        "ATL Terminal C",
+        "Atlanta Airport Terminal C",
+        "Concourse C",
+        "Atlanta Airport Concourse C"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6406115,
+        "longitude": -84.4325881
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/maps/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/24445167",
+          "role": "coordinate",
+          "version": 16,
+          "sourceUpdatedAt": "2026-09-01T03:02:21Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Concourse C"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-concourse-d",
+      "name": "ATL Concourse D",
+      "category": "CONCOURSE",
+      "parentId": "atl-domestic-terminal",
+      "aliases": [
+        "D Concourse",
+        "ATL Terminal D",
+        "Atlanta Airport Terminal D",
+        "Concourse D",
+        "Atlanta Airport Concourse D"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6405369,
+        "longitude": -84.4293263
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/maps/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/24445166",
+          "role": "coordinate",
+          "version": 17,
+          "sourceUpdatedAt": "2024-07-06T19:29:32Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Concourse D"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-concourse-e",
+      "name": "ATL Concourse E",
+      "category": "CONCOURSE",
+      "parentId": "atl-international-terminal",
+      "aliases": [
+        "E Concourse",
+        "ATL Terminal E",
+        "Atlanta Airport Terminal E",
+        "Concourse E",
+        "Atlanta Airport Concourse E"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6405151,
+        "longitude": -84.4248713
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/maps/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/24445175",
+          "role": "coordinate",
+          "version": 19,
+          "sourceUpdatedAt": "2026-02-08T00:26:06Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Concourse E"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-concourse-f",
+      "name": "ATL Concourse F",
+      "category": "CONCOURSE",
+      "parentId": "atl-international-terminal",
+      "aliases": [
+        "F Concourse",
+        "ATL Terminal F",
+        "Atlanta Airport Terminal F",
+        "Concourse F",
+        "Atlanta Airport Concourse F"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6393407,
+        "longitude": -84.4194855
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/maps/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/169784353",
+          "role": "coordinate",
+          "version": 12,
+          "sourceUpdatedAt": "2024-05-14T05:59:40Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Concourse F"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-checkpoint-main",
+      "name": "ATL Main Security Checkpoint",
+      "category": "SECURITY_CHECKPOINT",
+      "parentId": "atl-domestic-terminal",
+      "aliases": [
+        "Main Security Checkpoint",
+        "Domestic Terminal Main Checkpoint",
+        "Atlanta Airport Main Security Checkpoint"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": null,
+      "locationNote": "Officially named facility. Exact coordinates are not verified; parent-terminal coordinates must not be substituted.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/passenger-information/passenger-security/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-checkpoint-north",
+      "name": "ATL North Security Checkpoint",
+      "category": "SECURITY_CHECKPOINT",
+      "parentId": "atl-domestic-north",
+      "aliases": [
+        "North Security Checkpoint",
+        "Domestic Terminal North Checkpoint",
+        "Atlanta Airport North Security Checkpoint"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": null,
+      "locationNote": "Officially named facility. Exact coordinates are not verified; parent-terminal coordinates must not be substituted.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/passenger-information/passenger-security/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-checkpoint-lower-north",
+      "name": "ATL Lower North Security Checkpoint",
+      "category": "SECURITY_CHECKPOINT",
+      "parentId": "atl-domestic-north",
+      "aliases": [
+        "Lower North Security Checkpoint",
+        "Domestic Terminal Lower North Checkpoint",
+        "Atlanta Airport Lower North Security Checkpoint"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": null,
+      "locationNote": "Officially named facility. Exact coordinates are not verified; parent-terminal coordinates must not be substituted.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/passenger-information/passenger-security/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-checkpoint-south",
+      "name": "ATL South Security Checkpoint",
+      "category": "SECURITY_CHECKPOINT",
+      "parentId": "atl-domestic-south",
+      "aliases": [
+        "South Security Checkpoint",
+        "Domestic Terminal South Checkpoint",
+        "Atlanta Airport South Security Checkpoint"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": null,
+      "locationNote": "Officially named facility. Exact coordinates are not verified; parent-terminal coordinates must not be substituted.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/passenger-information/passenger-security/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-checkpoint-international",
+      "name": "ATL International Main Security Checkpoint",
+      "category": "SECURITY_CHECKPOINT",
+      "parentId": "atl-international-terminal",
+      "aliases": [
+        "International Security Checkpoint",
+        "International Terminal Departures Checkpoint",
+        "International Main Checkpoint",
+        "International Main Security Checkpoint",
+        "Atlanta Airport International Main Security Checkpoint"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": null,
+      "locationNote": "Officially named facility. Exact coordinates are not verified; parent-terminal coordinates must not be substituted.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/passenger-information/passenger-security/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-parking-north-hourly",
+      "name": "ATL North Hourly Parking",
+      "category": "PARKING",
+      "parentId": "atl-airport",
+      "aliases": [
+        "Terminal North Hourly",
+        "North Hourly",
+        "North Hourly Parking",
+        "Atlanta Airport North Hourly Parking"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6425078,
+        "longitude": -84.4442491
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/parking/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/449350801",
+          "role": "coordinate",
+          "version": 13,
+          "sourceUpdatedAt": "2023-07-12T23:21:15Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Terminal North Hourly"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-parking-north-daily",
+      "name": "ATL North Daily Parking",
+      "category": "PARKING",
+      "parentId": "atl-airport",
+      "aliases": [
+        "Terminal North Daily",
+        "North Daily",
+        "North Daily Parking",
+        "Atlanta Airport North Daily Parking"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6429319,
+        "longitude": -84.4447761
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/parking/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/166825340",
+          "role": "coordinate",
+          "version": 10,
+          "sourceUpdatedAt": "2023-04-18T12:00:11Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Terminal North Daily"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-parking-south-hourly",
+      "name": "ATL South Hourly Parking",
+      "category": "PARKING",
+      "parentId": "atl-airport",
+      "aliases": [
+        "South Hourly",
+        "South Hourly Parking",
+        "Atlanta Airport South Hourly Parking"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6391316,
+        "longitude": -84.4447005
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/parking/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/144043678",
+          "role": "coordinate",
+          "version": 14,
+          "sourceUpdatedAt": "2024-12-19T12:25:08Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "South Hourly"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-parking-south-daily",
+      "name": "ATL South Daily Parking",
+      "category": "PARKING",
+      "parentId": "atl-airport",
+      "aliases": [
+        "Terminal South Daily",
+        "South Daily",
+        "South Daily Parking",
+        "Atlanta Airport South Daily Parking"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6379929,
+        "longitude": -84.4445194
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/parking/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/92994684",
+          "role": "coordinate",
+          "version": 11,
+          "sourceUpdatedAt": "2022-05-25T14:02:00Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Terminal South Daily"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-parking-north-economy",
+      "name": "ATL North Economy Parking",
+      "category": "PARKING",
+      "parentId": "atl-airport",
+      "aliases": [
+        "Terminal North Economy",
+        "North Economy",
+        "North Economy Parking",
+        "Atlanta Airport North Economy Parking"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6429729,
+        "longitude": -84.4474502
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/parking/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/107522172",
+          "role": "coordinate",
+          "version": 9,
+          "sourceUpdatedAt": "2023-07-12T04:05:02Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Terminal North Economy"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-parking-west-deck",
+      "name": "ATL West Parking Deck",
+      "category": "PARKING",
+      "parentId": "atl-airport",
+      "aliases": [
+        "ATL West Deck",
+        "West Deck",
+        "West Parking Deck",
+        "Atlanta Airport West Parking Deck"
+      ],
+      "cities": ["Atlanta", "College Park"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6422658,
+        "longitude": -84.4591827
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/parking/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/901848459",
+          "role": "coordinate",
+          "version": 1,
+          "sourceUpdatedAt": "2021-01-30T03:55:42Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "ATL West Parking Deck"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-parking-select",
+      "name": "ATL ParkATL Select",
+      "category": "PARKING",
+      "parentId": "atl-airport",
+      "aliases": [
+        "Park ATL Select",
+        "ATL Select",
+        "ATL Select Parking",
+        "ParkATL Select",
+        "Atlanta Airport ParkATL Select"
+      ],
+      "cities": ["Atlanta", "College Park"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6272085,
+        "longitude": -84.4480209
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/parking/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/1340650318",
+          "role": "coordinate",
+          "version": 1,
+          "sourceUpdatedAt": "2024-12-06T23:22:54Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "ParkATL Select"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-parking-park-ride-c",
+      "name": "ATL Park-Ride Lot C",
+      "category": "PARKING",
+      "parentId": "atl-airport",
+      "aliases": [
+        "Park Ride Lot C",
+        "ATL Park Ride C",
+        "Park-Ride Lot C",
+        "Atlanta Airport Park-Ride Lot C"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6341348,
+        "longitude": -84.4539854
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/parking/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/449335250",
+          "role": "coordinate",
+          "version": 9,
+          "sourceUpdatedAt": "2024-07-29T10:47:40Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Park Ride Lot C"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-parking-international-hourly",
+      "name": "ATL International Hourly Parking",
+      "category": "PARKING",
+      "parentId": "atl-airport",
+      "aliases": [
+        "International Terminal Hourly Parking",
+        "International Hourly",
+        "International Hourly Parking",
+        "Atlanta Airport International Hourly Parking"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6411473,
+        "longitude": -84.4183191
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/parking/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/450193327",
+          "role": "coordinate",
+          "version": 11,
+          "sourceUpdatedAt": "2026-01-28T05:16:29Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "International Terminal Hourly Parking"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-parking-international-park-ride",
+      "name": "ATL International Park-Ride",
+      "category": "PARKING",
+      "parentId": "atl-airport",
+      "aliases": [
+        "International Terminal Park-Ride",
+        "International Park Ride",
+        "International Park-Ride",
+        "Atlanta Airport International Park-Ride"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6423336,
+        "longitude": -84.4049922
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/parking/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/408476606",
+          "role": "coordinate",
+          "version": 4,
+          "sourceUpdatedAt": "2019-09-05T18:16:29Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "International Terminal Park-Ride"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-parking-park-and-wait",
+      "name": "ATL Park and Wait Lot",
+      "category": "PARKING",
+      "parentId": "atl-airport",
+      "aliases": [
+        "ATL Cell Phone Lot",
+        "Cell Phone Lot",
+        "Cellphone Lot",
+        "Airport Cell Phone Lot",
+        "Park & Wait Lot",
+        "Park and Wait Lot",
+        "Atlanta Airport Park and Wait Lot"
+      ],
+      "cities": ["Atlanta", "College Park"],
+      "region": "GA",
+      "postalAddress": "1920 Autoport Drive, College Park, GA 30337",
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6382579,
+        "longitude": -84.4533998
+      },
+      "locationNote": "Approximate mapped facility reference point; not an entrance, gate, room, floor, or live operating status.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/parking/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/way/1531520526",
+          "role": "coordinate",
+          "version": 1,
+          "sourceUpdatedAt": "2026-06-22T22:30:20Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "bounding-box center of mapped facility; approximate",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Park and Wait Lot"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z",
+      "streetAddress": "1920 Autoport Drive"
+    },
+    {
+      "id": "atl-parking-park-ride-a",
+      "name": "ATL Park-Ride Lot A",
+      "category": "PARKING",
+      "parentId": "atl-airport",
+      "aliases": [
+        "Park Ride Lot A",
+        "Park-Ride Lot A",
+        "Atlanta Airport Park-Ride Lot A"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": null,
+      "locationNote": "Named on the official airport parking map. Individual lot boundaries and current operating status require verification; no inferred coordinate.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/wp-content/uploads/2024/09/2024-Domestic-Parking-Map.pdf",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-parking-park-ride-b",
+      "name": "ATL Park-Ride Lot B",
+      "category": "PARKING",
+      "parentId": "atl-airport",
+      "aliases": [
+        "Park Ride Lot B",
+        "Park-Ride Lot B",
+        "Atlanta Airport Park-Ride Lot B"
+      ],
+      "cities": ["Atlanta"],
+      "region": "GA",
+      "postalAddress": null,
+      "precision": "LANDMARK",
+      "location": null,
+      "locationNote": "Named on the official airport parking map. Individual lot boundaries and current operating status require verification; no inferred coordinate.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/wp-content/uploads/2024/09/2024-Domestic-Parking-Map.pdf",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z"
+    },
+    {
+      "id": "atl-rental-car-center",
+      "name": "ATL Rental Car Center",
+      "category": "RENTAL_CAR_CENTER",
+      "parentId": "atl-airport",
+      "aliases": [
+        "Rental Car Center",
+        "Atlanta Airport Rental Car Center",
+        "ATL RCC",
+        "Airport Rental Car Center"
+      ],
+      "cities": ["Atlanta", "College Park"],
+      "region": "GA",
+      "postalAddress": "2200 Rental Car Center Parkway, Atlanta, GA 30337",
+      "precision": "LANDMARK",
+      "location": {
+        "latitude": 33.6398688,
+        "longitude": -84.4644498
+      },
+      "locationNote": "Approximate Rental Car Center reference point at its mapped SkyTrain station. Not a specific rental counter, vehicle-return entrance, or floor.",
+      "sources": [
+        {
+          "label": "Hartsfield-Jackson Atlanta International Airport",
+          "url": "https://www.atl.com/directions-to-the-rcc/",
+          "role": "identity",
+          "observedAt": "2026-10-17T00:34:25Z"
+        },
+        {
+          "label": "OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/node/5186556521",
+          "role": "coordinate",
+          "version": 7,
+          "sourceUpdatedAt": "2021-02-11T00:17:01Z",
+          "observedAt": "2026-10-17T00:34:25Z",
+          "method": "mapped node",
+          "license": "ODbL 1.0; https://www.openstreetmap.org/copyright",
+          "mappedName": "Rental Car Center"
+        }
+      ],
+      "reviewedAt": "2026-10-17T00:34:25Z",
+      "streetAddress": "2200 Rental Car Center Parkway"
+    }
+  ]
+}

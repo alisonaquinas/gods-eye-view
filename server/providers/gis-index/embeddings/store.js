@@ -10,6 +10,7 @@ import {
   PRONUNCIATION_PRIORITY,
 } from './names.js';
 import { embeddingStatus } from './status.js';
+import { preparePlaceNames } from '../../place-registry/store.js';
 
 export class EmbeddingStore extends GisIndexStore {
   constructor(connectionString, options = {}) {
@@ -32,6 +33,8 @@ export class EmbeddingStore extends GisIndexStore {
   }
   async prepare(limit) {
     return this.transaction(async (client) => {
+      const places = await preparePlaceNames(client, this.now(), limit);
+      if (places) return places;
       const features = (
         await client.query(
           `SELECT source_id,object_id,street,street_keys,cities,place_names,county FROM gev_gis_features

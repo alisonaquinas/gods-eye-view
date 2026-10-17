@@ -89,6 +89,15 @@
         name: gev-gis-crossings
         state: stopped
       when: gev_old_crossings.stat.exists
+    - name: Check whether a place collector exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/gev-places.service
+      register: gev_old_places
+    - name: Stop the place collector before replacing its code
+      ansible.builtin.systemd_service:
+        name: gev-places
+        state: stopped
+      when: gev_old_places.stat.exists
     - name: Stop the embedding worker before replacing its code
       ansible.builtin.systemd_service:
         name: gev-gis-embeddings
@@ -170,6 +179,31 @@
             owner: root
             group: root
             mode: '0644'
+        - name: Install the independent public-place collector
+          ansible.builtin.template:
+            src: ../systemd/gev-places.service.j2
+            dest: /etc/systemd/system/gev-places.service
+            owner: root
+            group: root
+            mode: '0644'
+        - name: Import the versioned airport place catalog without upstream requests
+          ansible.builtin.command:
+            argv:
+              - systemd-run
+              - --wait
+              - --collect
+              - --pipe
+              - '--unit=gev-places-import-{{ gev_release[:12] }}'
+              - '--property=User={{ gev_account }}'
+              - '--property=WorkingDirectory={{ gev_source }}'
+              - --property=EnvironmentFile=/etc/gods-eye-view/storage.env
+              - '--setenv=GEV_GIS_SCHEMA={{ gev_gis_schema }}'
+              - '{{ gev_node }}/bin/node'
+              - scripts/places.mjs
+              - import
+              - data/places/atl-airport.json
+          register: gev_places_import
+          changed_when: (gev_places_import.stdout | from_json).changed | int > 0
         - name: Start GEV
           ansible.builtin.systemd_service:
             name: gods-eye-view
@@ -246,6 +280,12 @@
               - once
               - --max-ticks
               - '1'
+        - name: Enable and start the public-place collector
+          ansible.builtin.systemd_service:
+            name: gev-places
+            enabled: true
+            state: started
+            daemon_reload: true
         - name: Enable and start the crossing backfill and refresh worker
           ansible.builtin.systemd_service:
             name: gev-gis-crossings
@@ -269,7 +309,7 @@
             url: http://127.0.0.1:4173/api/locations/index/status
             return_content: true
           register: gev_running
-          until: gev_running.status == 200 and gev_running.json.running and gev_running.json.sources | length == 6 and gev_running.json.embeddings.running and gev_running.json.crossings.running
+          until: gev_running.status == 200 and gev_running.json.running and gev_running.json.sources | length == 6 and gev_running.json.embeddings.running and gev_running.json.crossings.running and gev_running.json.places.collection.running
           retries: 8
           delay: 5
         - name: Verify public status API
@@ -293,9 +333,14 @@
               worker_running: '{{ gev_running.json.running }}'
               embeddings_running: '{{ gev_running.json.embeddings.running }}'
               crossings_running: '{{ gev_running.json.crossings.running }}'
+              places_running: '{{ gev_running.json.places.collection.running }}'
               sources: '{{ gev_running.json.sources | length }}'
               initial_import: Running independently; inspect the Address index panel for progress.
       rescue:
+        - name: Stop and disable the failed place collector
+          ansible.builtin.systemd_service:
+            { name: gev-places, state: stopped, enabled: false }
+          failed_when: false
         - name: Stop and disable the failed crossing worker
           ansible.builtin.systemd_service:
             { name: gev-gis-crossings, state: stopped, enabled: false }

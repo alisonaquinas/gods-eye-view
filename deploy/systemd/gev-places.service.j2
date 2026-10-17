@@ -1,0 +1,32 @@
+[Unit]
+Description=GEV public-source metro Atlanta place registry
+After=postgresql.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User={{ gev_account }}
+Group={{ gev_account }}
+WorkingDirectory={{ gev_source }}
+Environment=HOME=/var/lib/gods-eye-view
+Environment=PATH={{ gev_node }}/bin:/usr/bin:/bin
+Environment=NODE_OPTIONS=--max-old-space-size=128
+EnvironmentFile=/etc/gods-eye-view/storage.env
+EnvironmentFile=/etc/gods-eye-view/gis-index.env
+ExecStart={{ gev_node }}/bin/node {{ gev_source }}/scripts/place-worker.mjs run
+Restart=on-failure
+RestartSec=60s
+TimeoutStopSec=60s
+KillSignal=SIGTERM
+UMask=0077
+Nice=15
+IOSchedulingClass=idle
+MemoryMax=256M
+TasksMax=64
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target

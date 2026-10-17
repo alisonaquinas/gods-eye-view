@@ -32,7 +32,9 @@ saved registry and before external geocoders. Exact address points, conservative
 shared-endpoint intersections, and approximate street points retain their source
 and precision. Named places linked to source address records are also available
 as `LANDMARK` matches, with their underlying record identified in the provenance.
-Conflicts and stale indexed matches require review.
+Conflicts and stale indexed matches require review. The [place registry](PLACE-REGISTRY.md)
+also supplies source-backed facility names and aliases, with separate parent
+relationships, official-address links, and embedding status.
 
 Intersections use the maintained [street crossing index](GIS-ADDRESS-INDEX.md#stored-street-crossings).
 Street order is interchangeable: `A & B` and `B & A` use the same unordered pair.

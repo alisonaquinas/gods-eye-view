@@ -219,6 +219,8 @@ test('resolution endpoint rejects unsupported or narrative fields, never forward
     middlewares: {
       use(path, fn) {
         if (path === '/api/locations/providers/status') return;
+        if (path === '/api/locations/places') return;
+        if (path === '/api/locations/places/google') return;
         assert.equal(path, '/api/locations/resolve');
         handler = fn;
       },

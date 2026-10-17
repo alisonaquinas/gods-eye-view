@@ -4,7 +4,7 @@
   gather_facts: false
   vars:
     gev_source: /opt/gods-eye-view
-    gev_expected: 61ecf5e0faad6a1e1eb12e67d5ab83b999fd42e3
+    gev_expected: 5b6c46fdeab0caa1fb095438e591dccf302b0b5d
     gev_account: gods-eye-view
   tasks:
     - name: Require an exact tested release commit

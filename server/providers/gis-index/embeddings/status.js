@@ -17,11 +17,15 @@ export async function embeddingStatus(store) {
   ).rows[0];
   const pending = (
     await store.pool.query(
-      'SELECT EXISTS(SELECT 1 FROM gev_gis_features WHERE names_revision=0) AS pending',
+      'SELECT EXISTS(SELECT 1 FROM gev_gis_features WHERE names_revision=0) OR EXISTS(SELECT 1 FROM gev_places WHERE names_revision=0 AND active) AS pending',
     )
   ).rows[0].pending;
   const heartbeat =
     control.heartbeat_at === null ? null : Number(control.heartbeat_at);
+  const windowEnd = Number(control.window_start) + 3_600_000;
+  const budgetWait =
+    control.window_requests >= (control.config.hourlyLimit || Infinity) &&
+    windowEnd > store.now();
   return {
     ...counts,
     percent: counts.names ? (counts.complete / counts.names) * 100 : 0,
@@ -32,10 +36,17 @@ export async function embeddingStatus(store) {
     running: heartbeat !== null && store.now() - heartbeat < 90_000,
     heartbeatAt: heartbeat,
     paused: control.paused,
-    phase: control.phase,
+    phase: budgetWait
+      ? 'Hourly embedding budget reached; waiting for the next window'
+      : control.phase,
     error: control.error,
     requests: Number(control.requests),
-    nextRequestAt: Number(control.next_request_at),
+    windowRequests: control.window_requests,
+    budgetWaiting: budgetWait,
+    nextRequestAt: Math.max(
+      Number(control.next_request_at),
+      budgetWait ? windowEnd : 0,
+    ),
     settings: control.config,
   };
 }
