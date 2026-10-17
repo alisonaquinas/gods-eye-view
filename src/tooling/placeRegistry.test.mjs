@@ -22,6 +22,10 @@ import {
   parseGooglePlaceQuery,
 } from '../../server/providers/place-registry/google-live.js';
 import { embeddingStatus } from '../../server/providers/gis-index/embeddings/status.js';
+import {
+  prepareKnownPronunciations,
+  KNOWN_PRONUNCIATIONS,
+} from '../../server/providers/gis-index/embeddings/pronunciations.js';
 
 const connection = process.env.GEV_GIS_TEST_DATABASE_URL;
 const query = {
@@ -417,6 +421,68 @@ test(
       await collectPublicPlaces(f.store, 1);
       assert.equal((await f.store.status()).places.collection.rejected, 0);
       assert.equal((await f.store.places({})).total, 1);
+    } finally {
+      await f.close();
+    }
+  },
+);
+
+test(
+  'airport code pronunciations repair rejected names once and retain completed vectors on restart',
+  { skip: !connection },
+  async () => {
+    const f = await fixture();
+    try {
+      const data = seed();
+      data.places[0].name = 'ATL Test Terminal';
+      await importPlaces(f.store, data);
+      const code = (
+        await f.store.pool.query(
+          "SELECT * FROM gev_gis_word_vectors WHERE token='atl'",
+        )
+      ).rows[0];
+      assert.equal(code.ipa, KNOWN_PRONUNCIATIONS.atl);
+      assert.equal(code.blocked, false);
+      await f.store.pool.query(
+        "UPDATE gev_gis_word_vectors SET pronunciation=NULL,ipa=NULL,blocked=true WHERE token='atl'",
+      );
+      await f.store.pool.query(
+        "UPDATE gev_gis_names SET pronunciation_error='One or more words were rejected by the pronunciation service.' WHERE tokens @> ARRAY['atl']::text[]",
+      );
+      assert.equal(
+        await f.store.transaction((c) =>
+          prepareKnownPronunciations(c, code.profile),
+        ),
+        1,
+      );
+      assert.equal(
+        (
+          await f.store.pool.query(
+            "SELECT pronunciation_error FROM gev_gis_names WHERE tokens @> ARRAY['atl']::text[]",
+          )
+        ).rows[0].pronunciation_error,
+        null,
+      );
+      const vector = Array(300).fill(0);
+      vector[0] = 1;
+      await f.store.pool.query(
+        "UPDATE gev_gis_word_vectors SET vector=$1 WHERE token='atl'",
+        [vector],
+      );
+      assert.equal(
+        await f.store.transaction((c) =>
+          prepareKnownPronunciations(c, code.profile),
+        ),
+        0,
+      );
+      assert.deepEqual(
+        (
+          await f.store.pool.query(
+            "SELECT vector FROM gev_gis_word_vectors WHERE token='atl'",
+          )
+        ).rows[0].vector,
+        vector,
+      );
     } finally {
       await f.close();
     }

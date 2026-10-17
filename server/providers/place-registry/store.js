@@ -7,6 +7,7 @@ import {
 import { cityKey } from '../gis-index/normalize.js';
 import { normalizeAddress, distanceMeters } from '../locations/matching.js';
 import { ensureEmbeddingProfile } from '../gis-index/embeddings/profile.js';
+import { prepareKnownPronunciations } from '../gis-index/embeddings/pronunciations.js';
 
 export const PLACE_REVIEW_MS = 60 * 24 * 60 * 60 * 1000;
 const categories = new Set([
@@ -467,5 +468,7 @@ export async function preparePlaceNames(client, now, limit, ids = null) {
       p.id,
     ]);
   }
+  if (places.length)
+    await prepareKnownPronunciations(client, EMBEDDING_PROFILE);
   return places.length;
 }

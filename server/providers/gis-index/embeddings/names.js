@@ -114,6 +114,10 @@ export const PRONUNCIATION_PRIORITY = [
     'and',
     'of',
     'the',
+    'atl',
+    'katl',
+    'rcc',
+    'parkatl',
   ]),
 ];
 const clean = (value) =>

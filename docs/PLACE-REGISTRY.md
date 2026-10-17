@@ -6,6 +6,10 @@ localities, optional coordinates, source evidence, and source-review dates.
 `gev_place_names` links canonical names and aliases to the same meaning and
 pronunciation embedding queue used by the GIS index. Existing embedding budgets
 apply; importing the catalog makes no network requests.
+Airport codes ATL/KATL/RCC use explicit broad American English letter-name IPA,
+and ParkATL uses “park” followed by A–T–L. This repairs dictionary/G2P rejections
+without changing the original names or meaning embeddings. The pronunciation
+source is recorded; vectors still come from the metered embedding service.
 
 ## Airport starter catalog
 

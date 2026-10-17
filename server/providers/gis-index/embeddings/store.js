@@ -11,6 +11,7 @@ import {
 } from './names.js';
 import { embeddingStatus } from './status.js';
 import { preparePlaceNames } from '../../place-registry/store.js';
+import { prepareKnownPronunciations } from './pronunciations.js';
 
 export class EmbeddingStore extends GisIndexStore {
   constructor(connectionString, options = {}) {
@@ -29,6 +30,9 @@ export class EmbeddingStore extends GisIndexStore {
         PHONETIC_METHOD,
         this.now(),
       ],
+    );
+    await this.transaction((client) =>
+      prepareKnownPronunciations(client, EMBEDDING_PROFILE),
     );
   }
   async prepare(limit) {
