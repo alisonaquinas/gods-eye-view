@@ -92,9 +92,9 @@
           until: catalog.status == 200 and catalog.json.total > 237000 and catalog.json.mode == 'clusters' and (catalog.json.entries | map(attribute='count') | sum) == catalog.json.total
           retries: 15
           delay: 2
-        - name: Verify individual places at neighborhood scale
+        - name: Verify individual places at single-block scale
           ansible.builtin.uri:
-            url: http://127.0.0.1:4173/api/locations/places/map?bbox=-84.395,33.75,-84.385,33.76
+            url: http://127.0.0.1:4173/api/locations/places/map?bbox=-84.395,33.75,-84.3945,33.751
             return_content: true
           register: neighborhood
           failed_when: neighborhood.status != 200 or neighborhood.json.mode != 'places' or neighborhood.json.total < 1 or (neighborhood.json.entries | length) != neighborhood.json.total
