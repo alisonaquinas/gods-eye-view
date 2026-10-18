@@ -169,7 +169,7 @@ export function createPlacesView(root, { fetchImpl = globalThis.fetch } = {}) {
       detail.append(
         link(
           'Open location in GEV',
-          `/#v=2&lat=${point.latitude}&lon=${point.longitude}&alt=800`,
+          `/#v=2&lat=${point.latitude}&lon=${point.longitude}&alt=800&pitch=-90&l=0a`,
         ),
       );
     }

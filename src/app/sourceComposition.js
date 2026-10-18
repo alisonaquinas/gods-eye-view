@@ -8,6 +8,7 @@ const contract = (layers, methods) =>
 
 /** Acquisition contracts and their consumers; records remain family-specific. */
 export const CATALOG_SOURCE_CONTRACTS = Object.freeze({
+  metroPlaces: contract(['metro-atlanta-places'], ['getSnapshot']),
   p25: contract(['p25-events'], ['getSnapshot']),
   atlantaCrime: contract(['atlanta-crime'], ['getSnapshot', 'getBoundaries']),
   deflock: contract(['deflock-cameras'], ['getRecords']),

@@ -1,0 +1,150 @@
+---
+- name: Deploy the Metro Atlanta Places map source
+  hosts: gev
+  gather_facts: false
+  vars:
+    gev_source: /opt/gods-eye-view
+    gev_account: gods-eye-view
+    gev_expected: ef7d2332593a71667177ce3179c6ff5044d42937
+    gev_services:
+      - gods-eye-view
+      - gev-gis-index
+      - gev-gis-embeddings
+      - gev-gis-crossings
+      - gev-places
+      - gev-place-refresh
+  tasks:
+    - name: Require an exact tested commit
+      ansible.builtin.assert:
+        that:
+          - gev_release is defined
+          - gev_release is match('^[0-9a-f]{40}$')
+    - name: Inspect running source
+      ansible.builtin.command: git rev-parse HEAD
+      args: { chdir: '{{ gev_source }}' }
+      become: true
+      become_user: '{{ gev_account }}'
+      vars: { ansible_become: true }
+      register: previous
+      changed_when: false
+    - name: Inspect tracked deployment changes
+      ansible.builtin.command: git status --porcelain --untracked-files=no
+      args: { chdir: '{{ gev_source }}' }
+      become: true
+      become_user: '{{ gev_account }}'
+      vars: { ansible_become: true }
+      register: dirty
+      changed_when: false
+    - name: Guard the inspected baseline
+      ansible.builtin.assert:
+        that:
+          - previous.stdout in [gev_expected, gev_release]
+          - dirty.stdout == ''
+    - name: Fetch the tested branch before interrupting services
+      ansible.builtin.command:
+        argv: [git, fetch, origin, refs/heads/codex/metro-places-map]
+        chdir: '{{ gev_source }}'
+      become: true
+      become_user: '{{ gev_account }}'
+      vars: { ansible_become: true }
+      environment:
+        GIT_SSH_COMMAND: ssh -i /var/lib/gods-eye-view/.ssh/id_ed25519_github -o IdentitiesOnly=yes -o BatchMode=yes
+      changed_when: false
+    - name: Require release to include the running revision
+      ansible.builtin.command:
+        argv:
+          [
+            git,
+            merge-base,
+            --is-ancestor,
+            '{{ previous.stdout }}',
+            '{{ gev_release }}',
+          ]
+        chdir: '{{ gev_source }}'
+      become: true
+      become_user: '{{ gev_account }}'
+      vars: { ansible_become: true }
+      changed_when: false
+    - name: Activate and verify the release
+      block:
+        - name: Stop source-sharing services for a consistent checkout
+          ansible.builtin.systemd_service:
+            name: '{{ item }}'
+            state: stopped
+          loop: '{{ gev_services }}'
+        - name: Activate exact tested source
+          ansible.builtin.command:
+            argv: [git, checkout, --detach, '{{ gev_release }}']
+            chdir: '{{ gev_source }}'
+          become: true
+          become_user: '{{ gev_account }}'
+          vars: { ansible_become: true }
+        - name: Resume services from their existing checkpoints
+          ansible.builtin.systemd_service:
+            name: '{{ item }}'
+            state: started
+          loop: '{{ gev_services }}'
+        - name: Verify full region clustering preserves every mapped place
+          ansible.builtin.uri:
+            url: http://127.0.0.1:4173/api/locations/places/map?bbox=-85.1,33.2,-83.5,34.5
+            return_content: true
+          register: catalog
+          until: catalog.status == 200 and catalog.json.total > 237000 and catalog.json.mode == 'clusters' and (catalog.json.entries | map(attribute='count') | sum) == catalog.json.total
+          retries: 15
+          delay: 2
+        - name: Verify individual places at neighborhood scale
+          ansible.builtin.uri:
+            url: http://127.0.0.1:4173/api/locations/places/map?bbox=-84.395,33.75,-84.385,33.76
+            return_content: true
+          register: neighborhood
+          failed_when: neighborhood.status != 200 or neighborhood.json.mode != 'places' or neighborhood.json.total < 1 or (neighborhood.json.entries | length) != neighborhood.json.total
+        - name: Verify collection counts and recurring refresh supervision
+          ansible.builtin.uri:
+            url: http://127.0.0.1:4173/api/locations/index/status
+            return_content: true
+          register: status
+          until: status.status == 200 and status.json.places.collections | length >= 3 and status.json.places.refresh.running
+          retries: 15
+          delay: 2
+        - name: Verify public HTTPS map source
+          ansible.builtin.uri:
+            url: https://gev.alisonaquinas.pro/src/layers/metroPlaces/index.js
+            return_content: true
+          delegate_to: localhost
+          become: false
+          register: page
+          failed_when: page.status != 200 or 'Metro Atlanta Places' not in page.content
+        - name: Verify every source-sharing service is active
+          ansible.builtin.command:
+            argv: [systemctl, is-active, '{{ item }}']
+          loop: '{{ gev_services }}'
+          changed_when: false
+        - name: Record the deployed source revision
+          ansible.builtin.lineinfile:
+            path: /root/home-cluster/inventory/production/host_vars/gev.yml
+            regexp: '^gods_eye_view_repository_version:'
+            line: 'gods_eye_view_repository_version: {{ gev_release }}'
+            backup: true
+          delegate_to: localhost
+          become: false
+      rescue:
+        - name: Stop source-sharing services for rollback
+          ansible.builtin.systemd_service:
+            name: '{{ item }}'
+            state: stopped
+          loop: '{{ gev_services }}'
+        - name: Restore inspected source
+          ansible.builtin.command:
+            argv: [git, checkout, --detach, '{{ previous.stdout }}']
+            chdir: '{{ gev_source }}'
+          become: true
+          become_user: '{{ gev_account }}'
+          vars: { ansible_become: true }
+        - name: Resume previous services
+          ansible.builtin.systemd_service:
+            name: '{{ item }}'
+            state: started
+          loop: '{{ gev_services }}'
+        - name: Report rollback
+          ansible.builtin.fail:
+            msg: Places map failed verification; previous source and all workers were restored. Registry data was preserved.

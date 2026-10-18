@@ -14,6 +14,7 @@ import { placeSchemaSql } from '../place-registry/schema.js';
 import { placeRefreshSchemaSql } from '../place-registry/refresh-schema.js';
 import { refreshStatus } from '../place-registry/refresh-store.js';
 import { listPlaces, placeStatus } from '../place-registry/store.js';
+import { mapPlaces, placeMapSchemaSql } from '../place-registry/map.js';
 import {
   publicPlaceSchemaSql,
   publicPlaceStatus,
@@ -101,6 +102,7 @@ export class GisIndexStore {
           ['gev-place-registry-v1', placeSchemaSql],
           ['gev-public-places-v1', publicPlaceSchemaSql],
           ['gev-place-refresh-v1', placeRefreshSchemaSql],
+          ['gev-place-map-v1', placeMapSchemaSql],
           [
             'gis-street-crossings-v2',
             `INSERT INTO gev_gis_crossing_queue(source_id,vertex_key,level,queued_at)
@@ -533,6 +535,9 @@ export class GisIndexStore {
   }
   async places(query) {
     return listPlaces(this, query);
+  }
+  async mapPlaces(query) {
+    return mapPlaces(this, query);
   }
   async suggest(query) {
     await this.initialize();

@@ -85,6 +85,11 @@ try {
     (el) => el.href,
   );
   assert.match(map, /lat=.+&lon=/);
+  assert.match(
+    map,
+    /&l=0a/,
+    'map link enables the Metro Atlanta Places source',
+  );
   await search('search', 'no-such-place-xyzzy-8399');
   assert.equal(
     await page.$eval('[data-places-empty]', (el) => !el.hidden),

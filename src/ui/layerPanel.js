@@ -41,6 +41,10 @@ const PANEL_GROUPS = [
     ids: ['cctv', 'recent-imagery', 'street-level'],
   },
   {
+    label: 'Places',
+    ids: ['metro-atlanta-places'],
+  },
+  {
     label: 'Infrastructure',
     ids: [
       'alpr-cameras',

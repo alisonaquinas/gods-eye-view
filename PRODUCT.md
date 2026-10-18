@@ -8,7 +8,7 @@ web
 
 ## Product Purpose
 
-God's Eye View is a browser-based geospatial intelligence console. This extension lets the operator browse and inspect the metro Atlanta place registry, the workflow confirmed by the user.
+God's Eye View is a browser-based geospatial intelligence console. The metro Atlanta place registry is available as a selectable map data layer and a searchable record view. The user requires mapped places in Data Layers, with record inspection available from individual places.
 
 ## Capabilities and Constraints
 

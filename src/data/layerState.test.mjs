@@ -257,8 +257,8 @@ test('Atlanta crime ranges, date basis and boundaries survive sharing and stored
 
 test('production registry is exact, canonical, and rejects incomplete contracts', async () => {
   assert.equal(validateLayerStateRegistry(), true);
-  assert.equal(REGISTERED_LAYER_IDS.length, 46);
-  assert.equal(new Set(REGISTERED_LAYER_IDS).size, 46);
+  assert.equal(REGISTERED_LAYER_IDS.length, 47);
+  assert.equal(new Set(REGISTERED_LAYER_IDS).size, 47);
   assert.ok(REGISTERED_LAYER_IDS.includes('transit'));
   assert.deepEqual(REGISTERED_LAYER_IDS, [...REGISTERED_LAYER_IDS].sort());
   assert.deepEqual(LEGACY_LAYER_STATE_TOKENS, {
@@ -297,7 +297,7 @@ test('production registry is exact, canonical, and rejects incomplete contracts'
   for (const [id, token] of Object.entries(LEGACY_LAYER_STATE_TOKENS)) {
     assert.equal(LAYER_STATE_TOKEN_RESERVATIONS[id], token);
   }
-  assert.equal(nextLayerStateToken(), '0a');
+  assert.equal(nextLayerStateToken(), '0b');
   assert.equal(
     nextLayerStateToken({ ...LEGACY_LAYER_STATE_TOKENS, alpha: '0', bravo: '3' }),
     '4',

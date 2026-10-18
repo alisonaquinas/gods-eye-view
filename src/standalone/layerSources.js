@@ -20,6 +20,7 @@ import { createCycloneSource } from '../layers/cyclones/source.js';
 import { createWindSource } from '../layers/wind/source.js';
 import { createFirmsSource } from '../layers/firms/source.js';
 import { createP25EventSource } from '../layers/p25Events/source.js';
+import { createMetroPlacesSource } from '../layers/metroPlaces/source.js';
 import { createAtlantaCrimeSource } from '../layers/atlantaCrime/source.js';
 import { createMapillarySource } from '../layers/streetLevel/providers/mapillary/source.js';
 import { createReferenceSources } from '../sources/reference.js';
@@ -54,6 +55,7 @@ export function createStandaloneLayerSources(overrides = {}) {
     firms: createFirmsSource(),
     p25: createP25EventSource(),
     atlantaCrime: createAtlantaCrimeSource(),
+    metroPlaces: createMetroPlacesSource(),
     wind: createWindSource(),
     weather: createWeatherSource(),
     cyclones: createCycloneSource(),

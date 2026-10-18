@@ -25,6 +25,7 @@ import { createApplicationEffAtlasLayers } from './layers/effAtlas.js';
 import { createApplicationDeflock } from './layers/deflock.js';
 import { createIncidentMap } from '../data/incidentMap.js';
 import { createApplicationP25Events } from './layers/p25Events.js';
+import { createApplicationMetroPlaces } from './layers/metroPlaces.js';
 import { createApplicationAtlantaCrime } from './layers/atlantaCrime.js';
 import { createApplicationLocalAdsb } from './layers/localAdsb.js';
 import { createApplicationAwareness } from './layers/militaryAwareness.js';
@@ -131,6 +132,7 @@ export function createApplicationCatalog({
           source: sources.atlantaCrime,
           incidentMap,
         }),
+        createApplicationMetroPlaces({ source: sources.metroPlaces }),
         createApplicationAirQuality({ source: sources['air-quality'] }),
         createApplicationFirePerimeters({
           source: sources['fire-perimeters'],

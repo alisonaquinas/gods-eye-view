@@ -3,6 +3,7 @@ import { parseLocationQuery } from './locations/matching.js';
 import { createAddressResolver } from './locations/resolver.js';
 import { createUspsProvider } from './locations/usps.js';
 import { parsePlaceListQuery } from './place-registry/query.js';
+import { parsePlaceMapQuery } from './place-registry/map.js';
 import {
   createGoogleLivePlaces,
   parseGooglePlaceQuery,
@@ -25,6 +26,12 @@ export function locationsProxy({
   }),
 } = {}) {
   const allow = makeRateLimiter({ windowMs: 60_000, max: 30, globalMax: 120 });
+  const allowMap = makeRateLimiter({
+    windowMs: 60_000,
+    max: 90,
+    globalMax: 360,
+  });
+  let activeMapRequests = 0;
   const send = (res, status, payload) => {
     if (res.destroyed) return;
     res.writeHead(status, {
@@ -57,6 +64,33 @@ export function locationsProxy({
     }
   }
   const install = ({ middlewares }) => {
+    middlewares.use('/api/locations/places/map', async (req, res) => {
+      if (req.method !== 'GET') return send(res, 405, { error: 'Use GET.' });
+      let query;
+      try {
+        query = parsePlaceMapQuery(
+          new URL(req.url, 'http://localhost').searchParams,
+        );
+      } catch (error) {
+        return send(res, 400, { error: error.message });
+      }
+      if (!index)
+        return send(res, 503, { error: 'Place registry is not configured.' });
+      if (!allowMap(clientKey(req)))
+        return send(res, 429, {
+          error: 'Place map busy; retry in one minute.',
+        });
+      if (activeMapRequests >= 2)
+        return send(res, 503, { error: 'Place map busy; try Refresh.' });
+      activeMapRequests++;
+      try {
+        send(res, 200, await index.mapPlaces(query));
+      } catch {
+        send(res, 503, { error: 'Place map unavailable; try Refresh.' });
+      } finally {
+        activeMapRequests--;
+      }
+    });
     middlewares.use('/api/locations/places/google', async (req, res) => {
       if (req.method !== 'GET') return send(res, 405, { error: 'Use GET.' });
       if (!allow(clientKey(req)))

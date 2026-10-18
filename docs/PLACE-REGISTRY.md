@@ -39,6 +39,32 @@ inclusion does not assert that a facility is currently open.
 This attribution/license applies to the OSM-derived catalog data, independently
 of the repository's software license. Source evidence is included in API output.
 
+## Map data layer
+
+Enable **Data Layers → Places → Metro Atlanta Places** to display the live
+registry on the globe. **Go to Atlanta** frames its metro coverage. Wide views
+show counted groups; click a count to zoom to its members. Close views show
+individual points; click one for its name, locality, confirmation requirement,
+and a link to the place records and their sources. Coincident points cycle
+through their places on repeated clicks. The layer's enabled state is saved and
+shareable (token `0a`).
+
+The layer follows the camera after movement settles and refreshes a stationary
+view every minute. Only active records with coordinates inside the metro bounds
+are mapped. Missing coordinates never inherit another place's position. Markers
+use the same depth-sampled surface anchors as P25, including on photorealistic
+3D tiles. Turning the layer off cancels requests and removes its markers,
+selection, listeners, and credits. Failed refreshes retain visibly stale data
+with a Refresh recovery action.
+
+`GET /api/locations/places/map?bbox=west,south,east,north&cell=degrees` clips reads
+to metro Atlanta. It returns `mode`, `total`, and `entries`: at most 500 individual
+records or 441 counted grid groups. Group counts conserve all matching places;
+there is no silent result cap. Each group carries its member bounds for zooming.
+The optional cell size scales groups to the current view and cannot bypass the
+response bound. The endpoint has its own map-read quota and a two-request
+concurrency limit, and never starts imports or alters geotags.
+
 ## Read and resolve
 
 Open **Display → Browse places** in GEV, or visit `/places.html`, to browse the
