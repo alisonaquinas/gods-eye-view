@@ -207,6 +207,7 @@ function placeRow(p, now) {
     postalAddress: p.postal_address,
     streetAddress: p.street_address,
     active: p.active,
+    requiresConfirmation: p.requires_confirmation === true,
     locationStatus: p.latitude == null ? 'UNLOCATED' : 'MAPPED',
     location:
       p.latitude == null
@@ -394,7 +395,10 @@ export async function lookupPlaces(pool, query, now) {
   }));
   return {
     status:
-      places.length === 1 && places[0].location && !places[0].reviewDue
+      places.length === 1 &&
+      places[0].location &&
+      !places[0].reviewDue &&
+      !places[0].requiresConfirmation
         ? 'RESOLVED'
         : 'AMBIGUOUS',
     places,
@@ -420,6 +424,7 @@ export async function lookupPlaces(pool, query, now) {
           sources: p.sources,
           reviewedAt: p.reviewedAt,
           locationNote: p.locationNote,
+          requiresConfirmation: p.requiresConfirmation,
           officialAddresses: p.officialAddresses,
         },
       })),

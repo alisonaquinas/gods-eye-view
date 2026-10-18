@@ -1079,5 +1079,7 @@
   "server/providers/gis-index/embeddings/store.js",
   "server/providers/gis-index/embeddings/transport.js",
   "server/providers/gis-index/embeddings/worker.js",
-  "server/providers/gis-index/progress.js"
+  "server/providers/gis-index/progress.js",
+  "scripts/place-refresh.mjs",
+  "src/tooling/placeRefresh.test.mjs"
 ]

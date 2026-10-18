@@ -496,3 +496,7 @@ source attribution and dates, meters all requests, and schedules a 60-day rollin
 refresh. Source completeness varies; indexed counts include cross-source overlap.
 See [GIS address index](docs/GIS-ADDRESS-INDEX.md) for exact source URLs, coverage,
 configuration, provenance, and operational limits.
+
+### Metro Atlanta place registry
+
+GEV checks Overture Maps public Places releases daily and imports new releases for metro Atlanta. Source IDs, licenses, confidence and published localities are retained. Imported locations require confirmation before incident attachment. The existing official GIS and curated airport collections remain separate. See [Place registry](docs/PLACE-REGISTRY.md#recurring-metro-atlanta-public-place-updates) for coverage, refresh rules, attribution and full license notices.

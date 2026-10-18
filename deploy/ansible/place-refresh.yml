@@ -1,0 +1,212 @@
+---
+- name: Deploy recurring public place updates to GEV
+  hosts: gev
+  gather_facts: false
+  vars:
+    gev_source: /opt/gods-eye-view
+    gev_account: gods-eye-view
+    gev_node: /opt/node-v24.14.0-linux-x64
+    gev_expected: 48fe93b60635929a3cfb4d8639a790f100c68de3
+    gev_services:
+      - gods-eye-view
+      - gev-gis-index
+      - gev-gis-embeddings
+      - gev-gis-crossings
+      - gev-places
+  tasks:
+    - name: Require an exact tested commit
+      ansible.builtin.assert:
+        that:
+          - gev_release is defined
+          - gev_release is match('^[0-9a-f]{40}$')
+    - name: Inspect running source
+      ansible.builtin.command: git rev-parse HEAD
+      args: { chdir: '{{ gev_source }}' }
+      become: true
+      become_user: '{{ gev_account }}'
+      vars: { ansible_become: true }
+      register: previous
+      changed_when: false
+    - name: Inspect tracked deployment changes
+      ansible.builtin.command: git status --porcelain --untracked-files=no
+      args: { chdir: '{{ gev_source }}' }
+      become: true
+      become_user: '{{ gev_account }}'
+      vars: { ansible_become: true }
+      register: dirty
+      changed_when: false
+    - name: Guard the inspected baseline
+      ansible.builtin.assert:
+        that:
+          - previous.stdout in [gev_expected, gev_release]
+          - dirty.stdout == ''
+    - name: Fetch the tested branch before interrupting services
+      ansible.builtin.command:
+        argv: [git, fetch, origin, refs/heads/codex/metro-place-refresh]
+        chdir: '{{ gev_source }}'
+      become: true
+      become_user: '{{ gev_account }}'
+      vars: { ansible_become: true }
+      environment:
+        GIT_SSH_COMMAND: ssh -i /var/lib/gods-eye-view/.ssh/id_ed25519_github -o IdentitiesOnly=yes -o BatchMode=yes
+      changed_when: false
+    - name: Require release to include the running revision
+      ansible.builtin.command:
+        argv:
+          [
+            git,
+            merge-base,
+            --is-ancestor,
+            '{{ previous.stdout }}',
+            '{{ gev_release }}',
+          ]
+        chdir: '{{ gev_source }}'
+      become: true
+      become_user: '{{ gev_account }}'
+      vars: { ansible_become: true }
+      changed_when: false
+    - name: Install isolated downloader prerequisites
+      ansible.builtin.apt:
+        name: python3-venv
+        state: present
+    - name: Create downloader environment
+      ansible.builtin.command:
+        argv: [python3, -m, venv, /opt/gev-places-venv]
+        creates: /opt/gev-places-venv/bin/pip
+    - name: Install pinned downloader requirements
+      ansible.builtin.copy:
+        src: ../requirements-places.txt
+        dest: /opt/gev-places-venv/requirements.txt
+        mode: '0644'
+    - name: Install downloader independently of the web application
+      ansible.builtin.pip:
+        requirements: /opt/gev-places-venv/requirements.txt
+        virtualenv: /opt/gev-places-venv
+    - name: Create bounded refresh state directory
+      ansible.builtin.file:
+        path: /var/lib/gods-eye-view/place-refresh
+        state: directory
+        owner: '{{ gev_account }}'
+        group: '{{ gev_account }}'
+        mode: '0700'
+    - name: Detect an existing refresh service
+      ansible.builtin.stat:
+        path: /etc/systemd/system/gev-place-refresh.service
+      register: refresh_unit
+    - name: Stop previous refresh process before replacing source
+      ansible.builtin.systemd_service:
+        name: gev-place-refresh
+        state: stopped
+      when: refresh_unit.stat.exists
+    - name: Activate and verify the release
+      block:
+        - name: Stop source-sharing workers for a consistent checkout
+          ansible.builtin.systemd_service:
+            name: '{{ item }}'
+            state: stopped
+          loop: '{{ gev_services }}'
+        - name: Activate exact tested source
+          ansible.builtin.command:
+            argv: [git, checkout, --detach, '{{ gev_release }}']
+            chdir: '{{ gev_source }}'
+          become: true
+          become_user: '{{ gev_account }}'
+          vars: { ansible_become: true }
+        - name: Install supervised refresh worker
+          ansible.builtin.template:
+            src: ../systemd/gev-place-refresh.service.j2
+            dest: /etc/systemd/system/gev-place-refresh.service
+            owner: root
+            group: root
+            mode: '0644'
+        - name: Resume existing workers from checkpoints
+          ansible.builtin.systemd_service:
+            name: '{{ item }}'
+            state: started
+            daemon_reload: true
+          loop: '{{ gev_services }}'
+        - name: Verify migrated live status endpoint
+          ansible.builtin.uri:
+            url: http://127.0.0.1:4173/api/locations/index/status
+            return_content: true
+          register: index_status
+          until: index_status.status == 200 and index_status.json.places.refresh is defined
+          retries: 15
+          delay: 2
+        - name: Verify public HTTPS application
+          ansible.builtin.uri:
+            url: https://gev.alisonaquinas.pro/
+            status_code: 200
+          delegate_to: localhost
+          become: false
+        - name: Enable recurring public-data imports
+          ansible.builtin.systemd_service:
+            name: gev-place-refresh
+            state: started
+            enabled: true
+        - name: Verify refresh worker ownership and heartbeat
+          ansible.builtin.uri:
+            url: http://127.0.0.1:4173/api/locations/index/status
+            return_content: true
+          register: refresh_status
+          until: refresh_status.status == 200 and refresh_status.json.places.refresh.running
+          retries: 15
+          delay: 2
+        - name: Record the deployed source revision
+          ansible.builtin.lineinfile:
+            path: /root/home-cluster/inventory/production/host_vars/gev.yml
+            regexp: '^gods_eye_view_repository_version:'
+            line: 'gods_eye_view_repository_version: {{ gev_release }}'
+            backup: true
+          delegate_to: localhost
+          become: false
+      rescue:
+        - name: Stop the new collector
+          ansible.builtin.systemd_service:
+            name: gev-place-refresh
+            state: stopped
+            enabled: false
+          failed_when: false
+        - name: Deactivate new public-source records before restoring older resolution rules
+          ansible.builtin.command:
+            argv:
+              - systemd-run
+              - --wait
+              - --collect
+              - --pipe
+              - '--unit=gev-places-rollback-{{ gev_release[:12] }}'
+              - '--property=User={{ gev_account }}'
+              - '--property=WorkingDirectory={{ gev_source }}'
+              - --property=EnvironmentFile=/etc/gods-eye-view/storage.env
+              - '{{ gev_node }}/bin/node'
+              - --input-type=module
+              - -e
+              - |
+                import pg from 'pg';
+                const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+                try {
+                  await pool.query("UPDATE gev_places SET active=false WHERE collection_id='metro-atlanta-overture'");
+                  const exists=await pool.query("SELECT to_regclass('gev_place_refresh_sources') AS table_name");
+                  if (exists.rows[0].table_name)
+                    await pool.query("UPDATE gev_place_refresh_sources SET release=NULL,next_check_at=0 WHERE id='metro-atlanta-overture'");
+                } finally {await pool.end();}
+        - name: Stop source-sharing services for rollback
+          ansible.builtin.systemd_service:
+            name: '{{ item }}'
+            state: stopped
+          loop: '{{ gev_services }}'
+        - name: Restore inspected source
+          ansible.builtin.command:
+            argv: [git, checkout, --detach, '{{ previous.stdout }}']
+            chdir: '{{ gev_source }}'
+          become: true
+          become_user: '{{ gev_account }}'
+          vars: { ansible_become: true }
+        - name: Resume previous services
+          ansible.builtin.systemd_service:
+            name: '{{ item }}'
+            state: started
+          loop: '{{ gev_services }}'
+        - name: Report rollback
+          ansible.builtin.fail:
+            msg: Public-place deployment failed verification; previous source was restored and the new collection was deactivated.

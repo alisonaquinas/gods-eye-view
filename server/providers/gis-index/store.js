@@ -11,6 +11,8 @@ import { createNameSearch } from './search.js';
 import { annotateZones } from './search-zones.js';
 import { uspsSchemaSql } from '../locations/usps-store.js';
 import { placeSchemaSql } from '../place-registry/schema.js';
+import { placeRefreshSchemaSql } from '../place-registry/refresh-schema.js';
+import { refreshStatus } from '../place-registry/refresh-store.js';
 import { listPlaces, placeStatus } from '../place-registry/store.js';
 import {
   publicPlaceSchemaSql,
@@ -52,13 +54,18 @@ export class GisIndexStore {
   ) {
     if (!/^[a-z][a-z0-9_]{0,62}$/.test(schema))
       throw new Error('Invalid GIS database schema.');
-    if (!['index', 'embeddings', 'crossings', 'places'].includes(worker))
+    if (
+      !['index', 'embeddings', 'crossings', 'places', 'place-refresh'].includes(
+        worker,
+      )
+    )
       throw new Error('Invalid GIS worker type.');
     this.controlTable = {
       index: 'gev_gis_control',
       embeddings: 'gev_gis_embedding_control',
       crossings: 'gev_gis_crossing_control',
       places: 'gev_place_control',
+      'place-refresh': 'gev_place_refresh_control',
     }[worker];
     this.lockKey = `gev-gis-${worker}-worker`;
     this.schema = schema;
@@ -93,6 +100,7 @@ export class GisIndexStore {
           ['gis-street-crossings-v1', crossingSchemaSql],
           ['gev-place-registry-v1', placeSchemaSql],
           ['gev-public-places-v1', publicPlaceSchemaSql],
+          ['gev-place-refresh-v1', placeRefreshSchemaSql],
           [
             'gis-street-crossings-v2',
             `INSERT INTO gev_gis_crossing_queue(source_id,vertex_key,level,queued_at)
@@ -491,6 +499,7 @@ export class GisIndexStore {
       places: {
         ...(await placeStatus(this)),
         collection: await publicPlaceStatus(this),
+        refresh: await refreshStatus(this),
       },
       coverage:
         'Includes published source records, not a guarantee of every real address. Source coverage and update dates vary. Unmatched locations can still use the existing geocoders.',

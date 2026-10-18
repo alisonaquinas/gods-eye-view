@@ -62,7 +62,9 @@
     "test:gis:crossings": "node --test src/tooling/gisCrossings.test.mjs",
     "places:import": "node scripts/places.mjs import",
     "test:places": "node --test src/tooling/placeRegistry.test.mjs",
-    "places:collect": "node scripts/place-worker.mjs"
+    "places:collect": "node scripts/place-worker.mjs",
+    "places:refresh": "node scripts/place-refresh.mjs",
+    "test:places:refresh": "node --test src/tooling/placeRefresh.test.mjs"
   },
   "dependencies": {
     "@jtarrio/signals": "^0.10.0",

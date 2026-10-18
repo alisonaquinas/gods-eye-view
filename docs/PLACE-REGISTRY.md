@@ -147,6 +147,98 @@ Malformed source records are retained for review and counted as `rejected`;
 they do not block other places. Their next GIS refresh retries them automatically.
 The original address record and `place_registry_error` retain the review context.
 
+## Recurring metro Atlanta public-place updates
+
+The independent `gev-place-refresh` service checks the official
+[Overture release catalog](https://stac.overturemaps.org/catalog.json) every 24
+hours. A new monthly Places release triggers a bounding-box download for the same
+metro envelope used by the GIS collector (−85.1, 33.2, −83.5, 34.5). This is a
+working metro coverage area, not the boundary of a formal statistical area.
+Businesses, schools, parks, medical facilities and other destinations can grow
+independently of the address index's sparse landmark-name field. The official
+GIS collector and curated airport records continue in their own collections.
+
+Records use stable Overture IDs in `metro-atlanta-overture`. Each retains the
+published name, aliases, source locality, facility point, original category,
+release, provider IDs, confidence, source update dates and licenses. Importing
+never invents a city from proximity. A published US/Georgia address with an
+explicit locality and existence confidence of at least 0.8 is required. Records
+marked closed or otherwise not open are excluded; an absent operating status is
+recorded as unknown. This is source reporting, not a live check of operating hours.
+No phone numbers, emails, or social profiles are imported.
+
+Overture observations set `requiresConfirmation: true`. They are available in
+catalog and exact-name lookup immediately after publication and join the existing
+name-embedding queue. They cannot automatically resolve an incident location;
+a unique name still needs confirmation. Source confidence measures existence,
+not coordinate accuracy. Distinct namesakes and independent source observations
+are preserved. The existing 20,000-name per-city suggestion limit is reported
+when reached; exact registry lookup does not have that inventory limit.
+
+```text
+/api/locations/places?collection=metro-atlanta-overture&search=library
+/api/locations/index/status                 # places.refresh
+```
+
+The worker stages the complete download before changing the published collection.
+A manifest, SHA-256 checksum, record count, bounds and release are checked.
+Publication updates changed names/coordinates and marks missing, closed or
+newly ineligible records inactive in one database transaction. Their last source
+evidence remains stored. Unchanged names reuse existing embeddings. Reappearing
+IDs reactivate and are relinked. Other collections are untouched.
+
+Empty/incomplete downloads, incompatible schema, unknown licenses, or a drop of
+more than 25% from the previous accepted count retain the previous publication
+and raise a source error. Up to 1% structurally invalid records are excluded and
+counted; normal confidence/locality exclusions are reported separately. Initial
+publication requires at least 1,000 accepted places. One export is bounded to
+500,000 source records and 512 MiB. Repeated failures back off from one hour to
+24 hours; the checkpoint and next check survive restarts. A daily no-change check
+does not rewrite source-review dates or redownload the dataset.
+
+`places.refresh` exposes worker heartbeat, pause state, source release, last
+check/success, next check, errors, and scanned/accepted/excluded/changed/retired
+counts. Detailed failures are in `journalctl -u gev-place-refresh`. A healthy
+idle worker remains alive and reports its heartbeat while waiting for the next
+check. The exporter runs with a separate pinned Python environment and no
+database or provider credentials. The systemd unit caps CPU and combined memory.
+Only the publication transaction gets a longer SQL timeout; API read limits
+remain unchanged.
+
+```sh
+npm run places:refresh -- run      # supervised continuous release checks
+npm run places:refresh -- once     # perform a due check and exit
+npm run places:refresh -- status
+npm run places:refresh -- pause
+npm run places:refresh -- resume
+```
+
+Use the existing server-side `DATABASE_URL` and `GEV_GIS_SCHEMA`.
+`GEV_PLACES_PYTHON` defaults to `/opt/gev-places-venv/bin/python`;
+`GEV_PLACES_STATE_DIR` defaults to `/var/lib/gods-eye-view/place-refresh`.
+Deployment uses `deploy/ansible/place-refresh.yml` with an exact tested
+`gev_release` and inspected `gev_expected`. It preserves running revisions,
+installs the separate downloader, checks web/worker health, enables the recurring
+service, and records the version in the controller inventory. Rollback deactivates
+this new collection before restoring older resolver code.
+
+Validation: `npm run test:places:refresh` against an isolated
+`GEV_GIS_TEST_DATABASE_URL` ending in `_test`. Run database-backed suites with
+`node --test --test-concurrency=1` because worker claims are database-wide.
+
+### Public data attribution
+
+Data from Overture Maps Foundation and its listed providers. This importer
+normalizes and filters their published Places data; it does not imply endorsement
+or field verification. Per-record licenses and provider IDs remain in `sources`.
+The dataset includes CDLA-Permissive-2.0, Apache-2.0 and CC0-1.0 contributions.
+See [Overture's attribution](https://docs.overturemaps.org/attribution/#places).
+Copies served with the API's source links:
+
+- [CDLA Permissive 2.0](../public/data/place-licenses/CDLA-Permissive-2.0.txt)
+- [Apache License 2.0](../public/data/place-licenses/Apache-2.0.txt)
+- [Full Foursquare notice and GEV modification notice](../public/data/place-licenses/Foursquare-NOTICE.txt)
+
 ## Google live lookups
 
 `GET /api/locations/places/google?q=business%20or%20landmark%20in%20Atlanta`
