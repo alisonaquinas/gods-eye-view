@@ -245,8 +245,8 @@ export function createGisIndexControls(
             'gis-index-source-count',
           ),
         );
-        const link = element('a', 'Browse airport place records ↗');
-        link.href = '/api/locations/places?collection=atl-airport&limit=100';
+        const link = element('a', 'Browse place records');
+        link.href = '/places.html';
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         details.append(
@@ -257,7 +257,7 @@ export function createGisIndexControls(
           ),
           element(
             'p',
-            'Airport facilities and named places from public GIS data. Aliases share one record; each place keeps its source links.',
+            'Airport facilities, official GIS places, and recurring public-data releases. Each place keeps its aliases and source links.',
             'gis-index-note',
           ),
           element(

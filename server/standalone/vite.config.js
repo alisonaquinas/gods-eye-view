@@ -15,7 +15,7 @@ export default defineConfig(({ command, mode }) => {
   for (const [key, value] of Object.entries(loaded)) {
     if (process.env[key] === undefined) process.env[key] = value;
   }
-  return createBrowserViteConfig({
+  const config = createBrowserViteConfig({
     plugins: [
       ...localProviderPlugins({ realtime: { tools: standaloneVoiceTools() } }),
       localMcpPlugin(),
@@ -29,4 +29,11 @@ export default defineConfig(({ command, mode }) => {
     allowedHosts: resolveAllowedHosts(process.env.GEV_ALLOWED_HOSTS),
     command,
   });
+  config.build.rollupOptions = {
+    input: {
+      main: fileURLToPath(new URL('../../index.html', import.meta.url)),
+      places: fileURLToPath(new URL('../../places.html', import.meta.url)),
+    },
+  };
+  return config;
 });

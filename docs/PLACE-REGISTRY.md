@@ -41,8 +41,24 @@ of the repository's software license. Source evidence is included in API output.
 
 ## Read and resolve
 
+Open **Display → Browse places** in GEV, or visit `/places.html`, to browse the
+active registry. The responsive table supports name/alias search, exact city,
+source collection, mapped/missing coordinates, and source-review filters.
+Results are sorted by name and paged at 25, 50, or 100 records; filters and page
+positions survive shared URLs and browser history. Selecting a place opens its
+address, aliases, coordinate limitations, review dates, public-source evidence,
+and licensing. Mapped places link back to their location in GEV. Missing
+coordinates never receive a substitute pin.
+
+The source disclosure shows release, last check/import, next scheduled check,
+worker state, and errors. Status checks once per minute while visible;
+**Refresh data** reloads the current page and status without starting an import.
+**View this page as JSON** exposes the same bounded API response.
+
 `GET /api/locations/places` accepts optional `search`, `collection`, `parentId`,
-`limit` (1–100, default 50), and `offset`. Search matches canonical names and
+`city` (case-insensitive exact locality), `locationStatus` (`MAPPED` or `UNLOCATED`),
+`reviewStatus` (`DUE`), `limit` (1–100, default 50), and `offset`.
+Filters combine with AND and exclude inactive records. Search matches canonical names and
 aliases; literal wildcard characters are not treated as SQL wildcards. Results
 include total count, parent ID, sources, `MAPPED`/`UNLOCATED`, review dates, and
 per-place embedding counts and linked name IDs.
@@ -54,6 +70,7 @@ Examples:
 ```text
 /api/locations/places?collection=atl-airport&limit=100
 /api/locations/places?search=checkpoint
+/api/locations/places?city=Alpharetta&search=library&locationStatus=MAPPED
 /api/locations/places?parentId=atl-domestic-terminal
 /api/locations/resolve?address=ATL%20Concourse%20B&city=Atlanta&region=GA&kind=LANDMARK
 /api/locations/resolve?address=Rental%20Car%20Center&city=College%20Park&region=GA&kind=LANDMARK

@@ -634,3 +634,90 @@ test(
     }
   },
 );
+
+test('place list filters reject ambiguous and invalid input', () => {
+  const parsed = parsePlaceListQuery(
+    new URLSearchParams(
+      'search=library&city=Atlanta&locationStatus=MAPPED&reviewStatus=DUE&limit=25&offset=25',
+    ),
+  );
+  assert.equal(parsed.city, 'Atlanta');
+  assert.equal(parsed.locationStatus, 'MAPPED');
+  assert.equal(parsed.reviewStatus, 'DUE');
+  for (const query of [
+    'city=a&city=b',
+    'locationStatus=anything',
+    'reviewStatus=NEW',
+    'city=%3Cscript%3E',
+    `city=${'a'.repeat(201)}`,
+  ])
+    assert.throws(() => parsePlaceListQuery(new URLSearchParams(query)));
+});
+
+test(
+  'catalog filters and collection counts describe only active matching places',
+  { skip: !connection },
+  async () => {
+    const f = await fixture();
+    try {
+      assert.deepEqual((await f.store.status()).places.collections, []);
+      const data = seed();
+      data.places.push({
+        ...data.places[0],
+        id: 'alpharetta-library',
+        name: 'Alpharetta Library',
+        cities: ['Alpharetta'],
+        aliases: ['Branch Library'],
+      });
+      await importPlaces(f.store, data);
+      assert.equal((await f.store.places({ city: ' ATLANTA ' })).total, 2);
+      assert.equal(
+        (await f.store.places({ city: 'Alpharetta', search: 'Branch' })).total,
+        1,
+      );
+      assert.equal(
+        (await f.store.places({ city: 'Alpharetta', search: 'Terminal' }))
+          .total,
+        0,
+      );
+      assert.equal(
+        (await f.store.places({ locationStatus: 'UNLOCATED' })).entries[0].id,
+        'test-checkpoint',
+      );
+      const page = await f.store.places({
+        city: 'Atlanta',
+        locationStatus: 'MAPPED',
+        limit: 1,
+        offset: 1,
+      });
+      assert.equal(page.total, 1);
+      assert.equal(page.entries.length, 0);
+      assert.equal((await f.store.places({ search: '!!!' })).total, 0);
+      assert.equal(
+        (await f.store.places({ city: "Atlanta' OR true--" })).total,
+        0,
+      );
+      assert.equal((await f.store.places({ reviewStatus: 'DUE' })).total, 0);
+      f.advance(PLACE_REVIEW_MS + 1000);
+      assert.equal(
+        (await f.store.places({ city: 'Atlanta', reviewStatus: 'DUE' })).total,
+        2,
+      );
+      await f.store.pool.query(
+        'UPDATE gev_places SET active=false WHERE id=$1',
+        ['test-checkpoint'],
+      );
+      assert.equal(
+        (await f.store.places({ locationStatus: 'UNLOCATED' })).total,
+        0,
+      );
+      const status = (await f.store.status()).places;
+      assert.equal(status.total, 2);
+      assert.equal(status.mapped, 2);
+      assert.equal(status.review_due, 2);
+      assert.deepEqual(status.collections, [{ id: 'test-places', total: 2 }]);
+    } finally {
+      await f.close();
+    }
+  },
+);

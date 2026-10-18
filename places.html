@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Places · God's Eye View</title>
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta name="theme-color" content="#0a0a0f" />
+    <link rel="stylesheet" href="/src/ui/styles/foundation.css" />
+    <link rel="stylesheet" href="/src/ui/styles/places-view.css" />
+  </head>
+  <body class="places-page">
+    <a class="places-skip" href="#place-results">Skip to places</a>
+    <header class="places-header">
+      <a class="places-brand" href="/" aria-label="Return to God's Eye View">
+        <img src="/logo.svg" alt="" width="32" height="32" />God's Eye View
+      </a>
+      <a href="/">Back to map</a>
+    </header>
+    <main id="places-view">
+      <div class="places-title-row">
+        <div>
+          <h1>Places</h1>
+          <p class="places-muted">Metro Atlanta public place registry</p>
+        </div>
+        <button type="button" data-places-refresh>Refresh data</button>
+      </div>
+      <section class="places-overview" aria-label="Registry status">
+        <p data-places-overview role="status">Checking registry status…</p>
+        <details class="places-refresh-details">
+          <summary>Sources &amp; refresh activity</summary>
+          <div data-places-sources><p>Loading source information…</p></div>
+        </details>
+      </section>
+      <form
+        class="places-filters"
+        role="search"
+        aria-label="Search the place registry"
+      >
+        <label class="places-name-filter"
+          >Place name or alias
+          <input
+            type="search"
+            name="search"
+            maxlength="200"
+            placeholder="e.g. library, airport, Piedmont"
+          />
+        </label>
+        <label
+          >City (exact name)
+          <input
+            type="search"
+            name="city"
+            maxlength="200"
+            placeholder="e.g. Atlanta"
+          />
+        </label>
+        <label
+          >Source
+          <select name="collection">
+            <option value="">All sources</option>
+          </select>
+        </label>
+        <label
+          >Location
+          <select name="locationStatus">
+            <option value="">All locations</option>
+            <option value="MAPPED">Mapped</option>
+            <option value="UNLOCATED">Missing coordinates</option>
+          </select>
+        </label>
+        <label
+          >Source review
+          <select name="reviewStatus">
+            <option value="">All records</option>
+            <option value="DUE">Review due</option>
+          </select>
+        </label>
+        <button type="submit" class="places-primary">Search</button>
+        <button type="reset">Clear</button>
+      </form>
+      <div class="places-workspace">
+        <section
+          id="place-results"
+          class="places-results"
+          tabindex="-1"
+          aria-label="Place results"
+        >
+          <div class="places-result-heading">
+            <p data-places-count role="status" aria-live="polite">
+              Loading places…
+            </p>
+            <label
+              >Per page
+              <select name="pageSize" aria-label="Places per page">
+                <option>25</option>
+                <option selected>50</option>
+                <option>100</option>
+              </select></label
+            >
+          </div>
+          <div data-places-error class="places-error" role="alert" hidden></div>
+          <div data-places-empty class="places-empty" hidden>
+            <h2>No matching places</h2>
+            <p>
+              Try a shorter name, check the city spelling, or clear the filters.
+            </p>
+            <button type="button" data-places-clear>Clear filters</button>
+          </div>
+          <div
+            class="places-table-scroll"
+            tabindex="0"
+            role="region"
+            aria-label="Place records"
+            data-places-table
+          >
+            <table>
+              <caption class="places-sr-only">
+                Active places, sorted by name. Select a place name to inspect
+                its details.
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Place</th>
+                  <th scope="col" class="places-city-col">City</th>
+                  <th scope="col" class="places-source-col">Source</th>
+                  <th scope="col">Location</th>
+                  <th scope="col" class="places-updated-col">Updated</th>
+                </tr>
+              </thead>
+              <tbody data-places-rows></tbody>
+            </table>
+          </div>
+          <div class="places-pagination">
+            <button type="button" data-places-previous disabled>
+              Previous
+            </button>
+            <p data-places-page>Page 1</p>
+            <button type="button" data-places-next disabled>Next</button>
+          </div>
+          <a
+            class="places-json"
+            data-places-json
+            target="_blank"
+            rel="noopener noreferrer"
+            hidden
+            >View this page as JSON</a
+          >
+        </section>
+        <aside
+          class="places-detail"
+          aria-label="Place details"
+          data-places-detail
+        >
+          <h2>Select a place</h2>
+          <p class="places-muted">
+            Choose a name to inspect its address, coordinates, aliases, and
+            public sources.
+          </p>
+        </aside>
+      </div>
+      <p class="places-footnote">
+        Published locations may be approximate. Source coverage varies; a mapped
+        record is not a verified entrance or live operating status.
+      </p>
+      <noscript
+        ><p class="places-error">
+          JavaScript is required to browse places.
+          <a href="/api/locations/places?limit=50">View the registry as JSON</a
+          >.
+        </p></noscript
+      >
+    </main>
+    <script type="module" src="/src/standalone/places.js"></script>
+  </body>
+</html>

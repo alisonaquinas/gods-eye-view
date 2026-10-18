@@ -1,4 +1,12 @@
 /* Address-index monitor inherits the Display panel's surface and typography. */
+.gis-places-link {
+  display: block;
+  padding: 12px 8px;
+  color: var(--accent);
+  font: 600 12px/1.5 var(--font-sans);
+  letter-spacing: normal;
+  text-underline-offset: 3px;
+}
 .gis-index-settings {
   color: var(--text-primary);
   font: 12px/1.5 var(--font-sans);

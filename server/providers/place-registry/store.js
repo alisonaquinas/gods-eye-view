@@ -236,15 +236,31 @@ function placeRow(p, now) {
 
 export async function listPlaces(
   store,
-  { search = '', collection = '', parentId = '', limit = 50, offset = 0 } = {},
+  {
+    search = '',
+    collection = '',
+    parentId = '',
+    city = '',
+    locationStatus = '',
+    reviewStatus = '',
+    limit = 50,
+    offset = 0,
+  } = {},
 ) {
   await store.initialize();
   const where = `active AND ($1='' OR collection_id=$1) AND ($2='' OR parent_id=$2)
-    AND ($3='' OR EXISTS(SELECT 1 FROM unnest(name_keys) n WHERE strpos(n,$3)>0))`;
+    AND ($3='' OR EXISTS(SELECT 1 FROM unnest(name_keys) n WHERE strpos(n,$3)>0))
+    AND ($4='' OR city_keys @> ARRAY[$4]::text[])
+    AND ($5='' OR ($5='MAPPED' AND latitude IS NOT NULL) OR ($5='UNLOCATED' AND latitude IS NULL))
+    AND ($6='' OR reviewed_at < $7)`;
   const values = [
     collection,
     parentId,
-    prepareName('PLACE', search)?.key || '',
+    prepareName('PLACE', search)?.key || (search ? '__no_name__' : ''),
+    cityKey(city) || (city ? '__no_city__' : ''),
+    locationStatus,
+    reviewStatus,
+    store.now() - PLACE_REVIEW_MS,
   ];
   return store.transaction(async (client) => {
     await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
@@ -258,7 +274,7 @@ export async function listPlaces(
     );
     const rows = (
       await client.query(
-        `SELECT * FROM gev_places WHERE ${where} ORDER BY name,id LIMIT $4 OFFSET $5`,
+        `SELECT * FROM gev_places WHERE ${where} ORDER BY name,id LIMIT $8 OFFSET $9`,
         [...values, limit, offset],
       )
     ).rows;
@@ -359,11 +375,17 @@ export async function officialAddressLinks(pool, ids, now) {
 export async function placeStatus(store) {
   return (
     await store.pool.query(
-      `SELECT count(*)::int AS total,
+      `SELECT coalesce(sum(total),0)::int AS total,
+    coalesce(sum(mapped),0)::int AS mapped,
+    coalesce(sum(unlocated),0)::int AS unlocated,
+    coalesce(sum(review_due),0)::int AS review_due,
+    max(updated_at)::float8 AS updated_at,
+    coalesce(jsonb_agg(jsonb_build_object('id',id,'total',total) ORDER BY id),'[]'::jsonb) AS collections
+    FROM (SELECT collection_id AS id, count(*)::int AS total,
     count(*) FILTER(WHERE latitude IS NOT NULL)::int AS mapped,
     count(*) FILTER(WHERE latitude IS NULL)::int AS unlocated,
     count(*) FILTER(WHERE reviewed_at<$1)::int AS review_due,
-    max(updated_at)::float8 AS updated_at FROM gev_places WHERE active`,
+    max(updated_at) AS updated_at FROM gev_places WHERE active GROUP BY collection_id) collections`,
       [store.now() - PLACE_REVIEW_MS],
     )
   ).rows[0];
